@@ -161,6 +161,8 @@ class VoiceOSUI:
                       fill="#111214", outline="", tags="ui")
         self._rounded(self.canvas, 4, 4, width - 5, height - 5, 12,
                       fill=self.PANEL, outline="#707176", width=1, tags="ui")
+        self.canvas.create_line(18, 7, width - 28, 7,
+                                fill="#777b82", width=1, tags="ui")
 
         cap_bottom = min(46, height - 9)
         self._rounded(self.canvas, 6, 6, width - 7, cap_bottom, 11,
@@ -168,6 +170,8 @@ class VoiceOSUI:
         self.canvas.create_rectangle(7, min(26, cap_bottom - 3),
                                      width - 8, cap_bottom,
                                      fill=self.HEADER, outline="", tags="ui")
+        self.canvas.create_line(20, cap_bottom - 1, width - 20, cap_bottom - 1,
+                                fill="#50545a", width=1, tags="ui")
         self.canvas.create_line(22, height - 7, width - 22, height - 7,
                                 fill="#174ea6", width=2, tags="ui")
 
@@ -208,16 +212,45 @@ class VoiceOSUI:
 
     def _draw_waveform(self, color: str, width: int):
         middle = 108
-        self.canvas.create_line(30, middle, width - 30, middle,
-                                fill=self.HEADER, width=1, tags="ui")
-        for index, x in enumerate(range(30, width - 30, 10)):
-            pulse = abs(math.sin(self._phase + index * 0.58))
-            amplitude = 6 + pulse * (10 + self._level * 16)
+        positions = list(range(36, width - 34, 10))
+        center = (len(positions) - 1) / 2
+        max_distance = max(center, 1)
+        for index, x in enumerate(positions):
+            distance = abs(index - center) / max_distance
+            envelope = 0.58 + 0.42 * (1 - distance ** 1.5)
+            wave = (0.53
+                    + 0.29 * math.sin(self._phase * 1.25 - index * 0.39)
+                    + 0.18 * math.sin(self._phase * 0.72 + index * 0.23))
+            amplitude = (6 + max(0.12, wave) * (14 + self._level * 18)) * envelope
+            bar_color = self._spectrum_color(index / max(len(positions) - 1, 1))
             self.canvas.create_line(x, middle - amplitude, x, middle + amplitude,
-                                    fill=color, width=4, capstyle=tk.ROUND, tags="ui")
+                                    fill=self._dim_color(bar_color), width=8,
+                                    capstyle=tk.ROUND, tags="ui")
+            self.canvas.create_line(x, middle - amplitude, x, middle + amplitude,
+                                    fill=bar_color, width=3, capstyle=tk.ROUND, tags="ui")
         detail = "Speak naturally — I’ll stop after a short pause." if self.ui_state == "listening" else "I’m processing your request."
         self.canvas.create_text(width // 2, 163, text=detail, fill=self.MUTED,
                                 font=("Segoe UI", 9), tags="ui")
+
+    @staticmethod
+    def _dim_color(color: str) -> str:
+        rgb = tuple(int(color[index:index + 2], 16) for index in (1, 3, 5))
+        return "#{:02x}{:02x}{:02x}".format(*(channel // 3 for channel in rgb))
+
+    def _spectrum_color(self, position: float) -> str:
+        """Interpolate a moving blue-cyan-violet-pink listening spectrum."""
+        colors = ("#28a5ff", "#36e0ee", "#617dff", "#a45cff", "#f45bd7", "#28a5ff")
+        point = (position * (len(colors) - 1) + self._phase * 0.045) % (len(colors) - 1)
+        index = int(point)
+        blend = point - index
+        start = colors[index]
+        end = colors[min(index + 1, len(colors) - 1)]
+        channels = [
+            round(int(start[offset:offset + 2], 16) * (1 - blend)
+                  + int(end[offset:offset + 2], 16) * blend)
+            for offset in (1, 3, 5)
+        ]
+        return "#{:02x}{:02x}{:02x}".format(*channels)
 
     def _draw_result(self, color: str, width: int):
         self._rounded(self.canvas, 24, 76, width - 24, 167, 16,

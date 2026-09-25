@@ -19,7 +19,7 @@ class VoiceOSUI:
     """A compact floating VoiceOS interface with listening/task states."""
 
     IDLE_SIZE = (348, 58)
-    ACTIVE_SIZE = (475, 236)
+    ACTIVE_SIZE = (475, 230)
     CONFIRM_SIZE = (620, 360)
     TOP_MARGIN = 18
     KEY_COLOR = "#000001"
@@ -86,13 +86,13 @@ class VoiceOSUI:
         self.mic_button = tk.Button(self.root, text="Mic", command=self._on_mic_command,
                                     bd=0, bg=self.HEADER, fg=self.TEXT,
                                     activebackground=self.BORDER, font=("Segoe UI", 9))
-        self._entry_window = self.canvas.create_window(190, 204, window=self.command_entry,
-                                                        width=250, height=30,
+        self._entry_window = self.canvas.create_window(187, 199, window=self.command_entry,
+                                                        width=249, height=31,
                                                         state="hidden")
-        self._run_window = self.canvas.create_window(340, 204, window=self.run_button,
-                                                      width=52, height=30, state="hidden")
-        self._mic_window = self.canvas.create_window(402, 204, window=self.mic_button,
-                                                      width=52, height=30, state="hidden")
+        self._run_window = self.canvas.create_window(337, 199, window=self.run_button,
+                                                      width=53, height=31, state="hidden")
+        self._mic_window = self.canvas.create_window(399, 199, window=self.mic_button,
+                                                      width=53, height=31, state="hidden")
 
         # Compatibility status objects used by current feedback integrations.
         self.status_card = tk.Frame(self.root, bg=self.PANEL)
@@ -162,7 +162,7 @@ class VoiceOSUI:
         self._rounded(self.canvas, 4, 4, width - 5, height - 5, 12,
                       fill=self.PANEL, outline="#707176", width=1, tags="ui")
 
-        cap_bottom = min(51, height - 9)
+        cap_bottom = min(46, height - 9)
         self._rounded(self.canvas, 6, 6, width - 7, cap_bottom, 11,
                       fill=self.HEADER, outline="", tags="ui")
         self.canvas.create_rectangle(7, min(26, cap_bottom - 3),
@@ -191,12 +191,12 @@ class VoiceOSUI:
         label = {"listening": "Listening", "thinking": "Thinking",
                  "executing": "Working", "complete": "Completed",
                  "error": "Couldn’t complete", "confirm": "Confirm action"}.get(self.ui_state, "VoiceOS")
-        self.canvas.create_oval(22, 18, 40, 36, fill=color, outline="", tags="ui")
-        self.canvas.create_text(50, 24, text=label, anchor="w", fill=self.TEXT,
+        self.canvas.create_oval(22, 12, 40, 30, fill=color, outline="", tags="ui")
+        self.canvas.create_text(50, 20, text=label, anchor="w", fill=self.TEXT,
                                 font=("Segoe UI", 11, "bold"), tags="ui")
-        self.canvas.create_text(50, 42, text=self._status_message, anchor="w", fill=self.MUTED,
+        self.canvas.create_text(50, 38, text=self._status_message, anchor="w", fill=self.MUTED,
                                 width=390, font=("Segoe UI", 9), tags="ui")
-        self.canvas.create_text(width - 25, 32, text="×", fill=self.MUTED,
+        self.canvas.create_text(width - 25, 30, text="×", fill=self.MUTED,
                                 font=("Segoe UI", 15), tags="ui")
         if self.ui_state in {"listening", "thinking", "executing"}:
             self._draw_waveform(color, width)
@@ -207,12 +207,12 @@ class VoiceOSUI:
         self.canvas.itemconfigure(self._mic_window, state="normal")
 
     def _draw_waveform(self, color: str, width: int):
-        middle = 113
-        self.canvas.create_line(36, middle, width - 28, middle,
+        middle = 108
+        self.canvas.create_line(30, middle, width - 30, middle,
                                 fill=self.HEADER, width=1, tags="ui")
-        for index, x in enumerate(range(36, width - 28, 10)):
+        for index, x in enumerate(range(30, width - 30, 10)):
             pulse = abs(math.sin(self._phase + index * 0.58))
-            amplitude = 8 + pulse * (12 + self._level * 48)
+            amplitude = 6 + pulse * (10 + self._level * 16)
             self.canvas.create_line(x, middle - amplitude, x, middle + amplitude,
                                     fill=color, width=4, capstyle=tk.ROUND, tags="ui")
         detail = "Speak naturally — I’ll stop after a short pause." if self.ui_state == "listening" else "I’m processing your request."

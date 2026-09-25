@@ -12,6 +12,7 @@ Turns natural language into EXECUTED actions (not just "open a tab"):
     open linkedin / launch notepad       -> site / app aliases
     create a game via claude code        -> delegates the build to the Claude CLI
     run command <shell text>             -> verified through core + verify
+    open notepad and write hello         -> opens app and executes action
 
 Everything works OFFLINE with zero backends (deterministic grammar),
 and every action is recorded through core.VoiceOSWorkflow so the
@@ -40,7 +41,7 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import quote_plus
 
 # ---------------------------------------------------------------------------
@@ -236,6 +237,21 @@ class IntentParser:
         if not t:
             return None
 
+        # Check for compound app actions first (e.g., "open notepad and write hello")
+        try:
+            from app_actions import AppActions
+            app_actions = AppActions()
+            compound = app_actions.parse_compound_action("", t)
+            if compound:
+                return {
+                    "action": "app_action",
+                    "app": compound["app"],
+                    "action_type": compound["action_type"],
+                    "content": compound["content"]
+                }
+        except Exception:
+            pass
+
         # explicit shell escape hatch — only this phrase runs raw commands
         m_run = re.match(r"^run command\s+(.+)$", t)
         if m_run:
@@ -393,7 +409,14 @@ class TaskExecutor:
         out: Dict[str, Any] = {"intent": intent, "action": action, "ok": False,
                                "detail": "", "verification": ""}
         try:
-            if action == "open_url":
+            if action == "app_action":
+                app_name = intent.get("app", "")
+                action_type = intent.get("action_type", "")
+                content = intent.get("content", "")
+                okk, detail = self._handle_app_action(app_name, action_type, content)
+                out.update(ok=okk, verification="PASS" if okk else "FAIL", detail=detail)
+
+            elif action == "open_url":
                 url = intent["url"]
                 if self.dry_run:
                     out.update(ok=True, detail=f"[dry-run] would open {url}",
@@ -407,16 +430,31 @@ class TaskExecutor:
 
             elif action == "open_app":
                 appid = intent["appid"]
+                app_name = intent.get("target", "app")
                 if self.dry_run:
                     out.update(ok=True, detail=f"[dry-run] would launch {appid}",
                                verification="SKIPPED")
                 else:
+                    # Try to launch the app
                     proc = subprocess.run(f'start "" "{appid}"', shell=True, check=False)
                     okk = proc.returncode == 0
-                    out.update(ok=okk, verification="PASS" if okk else "FAIL",
-                               detail=(f"Got it — I am launching {intent['target']} for you."
-                                      if okk else
-                                      f"Could not launch '{intent['target']}' ({appid})."))
+                    
+                    if okk:
+                        out.update(ok=True, verification="PASS",
+                                   detail=f"Got it — I am launching {app_name} for you.")
+                    else:
+                        # Fallback: search for the app on the web if launch fails
+                        from app_actions import AppActions
+                        app_actions = AppActions()
+                        fallback_url = app_actions.open_app_in_browser_fallback(app_name)
+                        opened = webbrowser.open(fallback_url)
+                        out.update(ok=bool(opened),
+                                   verification="PASS" if opened else "FAIL",
+                                   detail=(f"Could not launch '{app_name}' locally. "
+                                          f"Opening a web search to download it instead."
+                                          if opened else
+                                          f"Could not launch '{app_name}' ({appid})."))
+
 
             elif action == "search":
                 query = intent["query"]
@@ -601,6 +639,56 @@ class TaskExecutor:
         status = str(wf.get_task_status(task_id)).upper()
         okk = status in ("PASS", "COMPLETED")
         return okk, f"Command '{command}' -> {status}", status
+
+    def _handle_app_action(self, app_name: str, action_type: str, content: str) -> Tuple[bool, str]:
+        """Handle compound app actions like 'open notepad and write hello'."""
+        try:
+            from app_discovery import get_app_path
+            from app_actions import AppActions
+            
+            # Try to find the app
+            app_path = get_app_path(app_name, {})
+            if not app_path:
+                # Fallback: search for the app online
+                app_actions = AppActions()
+                search_url = app_actions.open_app_in_browser_fallback(app_name)
+                if webbrowser.open(search_url):
+                    return True, (f"App '{app_name}' not found locally. Opening a web search "
+                                f"to download it. You can then manually open it and {action_type} {content}")
+                else:
+                    return False, f"Could not find '{app_name}' or open a web search for it."
+            
+            app_actions = AppActions()
+            
+            # Execute the appropriate action
+            if action_type == "write":
+                success, detail = app_actions.execute_write_action(app_name, content, app_path)
+                return success, detail
+            
+            elif action_type == "create":
+                success, detail = app_actions.execute_create_action(app_name, content, app_path)
+                return success, detail
+            
+            elif action_type == "calculate":
+                # For calculator, just open it with the expression
+                success, filepath = app_actions.save_text_locally(
+                    f"Calculation: {content}",
+                    f"{app_name}_calc",
+                    "txt"
+                )
+                subprocess.run(f'start "" "{app_path}"', shell=True, check=False)
+                return True, f"Opened {app_name}. Calculation saved: {content}. Saved to {filepath}"
+            
+            elif action_type == "search":
+                # Open app and search in it
+                subprocess.run(f'start "" "{app_path}"', shell=True, check=False)
+                return True, f"Opened {app_name}. Ready to search for: {content}"
+            
+            else:
+                return False, f"Unknown app action type: {action_type}"
+        
+        except Exception as e:
+            return False, f"Error handling app action: {e}"
 
     def _record(self, intent: Dict[str, Any], out: Dict[str, Any]):
         """Mirror the action into the core/verify/state history for the UI."""

@@ -233,6 +233,7 @@ class IntentParser:
 
     def parse(self, text: str) -> Optional[Dict[str, Any]]:
         """Return an intent dict, or None if the text is not command-like."""
+        raw_text = " ".join(text.strip().split())
         t = " ".join(text.strip().lower().split())
         if not t:
             return None
@@ -241,7 +242,7 @@ class IntentParser:
         try:
             from app_actions import AppActions
             app_actions = AppActions()
-            compound = app_actions.parse_compound_action("", t)
+            compound = app_actions.parse_compound_action("", raw_text)
             if compound:
                 return {
                     "action": "app_action",

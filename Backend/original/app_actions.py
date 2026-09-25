@@ -18,6 +18,7 @@ import os
 import re
 import time
 import subprocess
+import base64
 import smtplib
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
@@ -46,15 +47,63 @@ class AppActions:
                 return True
             except Exception:
                 pass
-        
-        # Fallback: use Windows PowerShell
+
+        if os.name != "nt":
+            return False
+
         try:
-            # Escape quotes for PowerShell
-            escaped = text.replace('"', '\"')
-            cmd = f'powershell -Command "Set-Clipboard -Value \'{escaped}\'"'
-            result = subprocess.run(cmd, shell=True, capture_output=True, timeout=5)
+            encoded = base64.b64encode(text.encode("utf-8")).decode("ascii")
+            script = (
+                "$value = [Text.Encoding]::UTF8.GetString("
+                f"[Convert]::FromBase64String('{encoded}')); "
+                "Set-Clipboard -Value $value"
+            )
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+                capture_output=True, timeout=10, check=False
+            )
             return result.returncode == 0
-        except Exception:
+        except (OSError, subprocess.SubprocessError):
+            return False
+
+    @staticmethod
+    def _launch_app(app_path: str) -> bool:
+        """Launch an app path without interpolating it into a shell command."""
+        try:
+            if os.name == "nt":
+                subprocess.Popen(
+                    ["cmd.exe", "/c", "start", "", app_path],
+                    close_fds=True
+                )
+            else:
+                subprocess.Popen([app_path])
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def _paste_into_app(app_name: str) -> bool:
+        """Activate the requested app and paste; never type into another window."""
+        if os.name != "nt":
+            return False
+
+        try:
+            target = base64.b64encode(app_name.encode("utf-8")).decode("ascii")
+            script = (
+                "Add-Type -AssemblyName System.Windows.Forms; "
+                "$target = [Text.Encoding]::UTF8.GetString("
+                f"[Convert]::FromBase64String('{target}')); "
+                "$shell = New-Object -ComObject WScript.Shell; "
+                "if (-not $shell.AppActivate($target)) { exit 2 }; "
+                "Start-Sleep -Milliseconds 250; "
+                "$shell.SendKeys('^v')"
+            )
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+                capture_output=True, timeout=10, check=False
+            )
+            return result.returncode == 0
+        except (OSError, subprocess.SubprocessError):
             return False
 
     def __init__(self, save_dir: Optional[str] = None):
@@ -88,10 +137,10 @@ class AppActions:
         ]
         
         # Try to match the query string if available
-        test_str = query.lower().strip()
+        test_str = " ".join(query.strip().split())
         
         for pattern, action_type in patterns:
-            m = re.match(pattern, test_str)
+            m = re.match(pattern, test_str, re.IGNORECASE)
             if m:
                 app_name = m.group(1).strip()
                 content = m.group(2).strip() if len(m.groups()) > 1 else ""
@@ -116,48 +165,23 @@ class AppActions:
             (success, detail_message)
         """
         try:
-            # Launch the application
-            proc = subprocess.Popen(f'start "" "{app_path}"', shell=True)
-            time.sleep(2)  # Wait for app to open
-            
-            # Copy content to clipboard
+            if not self._launch_app(app_path):
+                return False, f"Could not launch {app_name}."
+            time.sleep(1.5)
+
             if not self._copy_to_clipboard(content):
-                return False, f"Failed to copy text to clipboard"
-            
-            # Send paste command
-            subprocess.run('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; '
-                          '[System.Windows.Forms.SendKeys]::SendWait(\"^v\")"',
-                          shell=True, capture_output=True)
-            
-            # Auto-save for text editors
+                return False, "Could not copy dictated text to the clipboard."
+            if not self._paste_into_app(app_name):
+                return False, (
+                    f"Opened {app_name}, but could not safely activate it to paste. "
+                    "The text was not sent to another window."
+                )
+
             if app_name.lower() in ("notepad", "text", "editor", "wordpad"):
-                time.sleep(0.5)
-                # Save file
-                subprocess.run('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; '
-                              '[System.Windows.Forms.SendKeys]::SendWait(\"^s\")"',
-                              shell=True, capture_output=True)
-                time.sleep(1)
-                
-                # Save to default location
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = os.path.join(self.save_dir, f"note_{timestamp}.txt")
-                
-                # Type the filename
-                if self._copy_to_clipboard(filename):
-                    subprocess.run('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; '
-                                  '[System.Windows.Forms.SendKeys]::SendWait(\"^a\")"',
-                                  shell=True, capture_output=True)
-                    subprocess.run('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; '
-                                  '[System.Windows.Forms.SendKeys]::SendWait(\"^v\")"',
-                                  shell=True, capture_output=True)
-                    time.sleep(0.5)
-                    
-                    # Press Enter to save
-                    subprocess.run('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; '
-                                  '[System.Windows.Forms.SendKeys]::SendWait(\"{ENTER}\")"',
-                                  shell=True, capture_output=True)
-                
-                return True, f"Opened {app_name} and wrote '{content[:50]}...'. Saved to {filename}"
+                success, filepath = self.save_text_locally(content, "note", "txt")
+                if not success:
+                    return False, f"Text was pasted into {app_name}, but saving locally failed: {filepath}"
+                return True, f"Opened {app_name}, typed your text, and saved a copy to {filepath}."
             
             return True, f"Opened {app_name} and wrote '{content}'"
         
@@ -170,7 +194,8 @@ class AppActions:
         Similar to write but for more complex creation requests.
         """
         try:
-            subprocess.Popen(f'start "" "{app_path}"', shell=True)
+            if not self._launch_app(app_path):
+                return False, f"Could not launch {app_name}."
             time.sleep(2)
             
             # For Word/Office, could use more sophisticated creation
@@ -179,10 +204,7 @@ class AppActions:
                 return True, f"Opened {app_name}. Ready to create: {request}"
             else:
                 # For text editors, just write the request as a template
-                if self._copy_to_clipboard(request):
-                    subprocess.run('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; '
-                                  '[System.Windows.Forms.SendKeys]::SendWait(\"^v\")"',
-                                  shell=True, capture_output=True)
+                if self._copy_to_clipboard(request) and self._paste_into_app(app_name):
                     return True, f"Opened {app_name} and started creating: {request}"
                 else:
                     return False, f"Failed to paste content into {app_name}"

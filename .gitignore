@@ -1,0 +1,37 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*secret*
+*credentials*
+*token*
+
+# Python artifacts and environments
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+env/
+ENV/
+
+# Local/editor/system files
+.vscode/
+.idea/
+*.log
+*.tmp
+*.temp
+Thumbs.db
+Desktop.ini
+
+# Audio recordings and generated data
+*.wav
+*.mp3
+*.m4a
+*.csv
+*.sqlite
+*.db

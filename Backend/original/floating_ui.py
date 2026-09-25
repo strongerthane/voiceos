@@ -23,10 +23,10 @@ class VoiceOSUI:
     CONFIRM_SIZE = (620, 360)
     TOP_MARGIN = 18
     KEY_COLOR = "#000001"
-    PANEL = "#10131b"
-    PANEL_LIGHT = "#171b25"
-    HEADER = "#191e2a"
-    BORDER = "#394153"
+    PANEL = "#181b24"
+    PANEL_LIGHT = "#222631"
+    HEADER = "#20242e"
+    BORDER = "#737b8d"
     TEXT = "#f4f6fb"
     MUTED = "#c3c9d4"
     BLUE = "#1a73e8"
@@ -158,40 +158,61 @@ class VoiceOSUI:
             self._draw_active(width, height)
 
     def _draw_liquid_glass(self, width: int, height: int):
-        """Layer a subtle glass highlight over a dark floating island."""
-        self._rounded(self.canvas, 7, 9, width - 1, height - 1, 25,
-                      fill="#080a10", outline="", tags="ui")
-        self._rounded(self.canvas, 4, 4, width - 5, height - 7, 24,
-                      fill=self.PANEL, outline="#343a49", width=1, tags="ui")
-        self._rounded(self.canvas, 7, 6, width - 8, height - 10, 22,
-                      fill=self.PANEL, outline="#1d2330", width=1, tags="ui")
+        """Render a smoked liquid-glass capsule with specular and color rims."""
+        self._rounded(self.canvas, 7, 10, width - 1, height - 1, 26,
+                      fill="#07090e", outline="", tags="ui")
+        self._rounded(self.canvas, 4, 4, width - 5, height - 7, 25,
+                      fill="#171a22", outline="#82899a", width=1, tags="ui")
+        self._rounded(self.canvas, 6, 5, width - 7, height - 9, 23,
+                      fill="#20232c", outline="#343a48", width=1, tags="ui")
+        self._rounded(self.canvas, 9, 7, width - 10, height - 12, 21,
+                      fill=self.PANEL, outline="#282d38", width=1, tags="ui")
 
-        # Cool reflected light at the top and edge highlights create glass
-        # depth without the old gray title-bar/beveled-button look.
-        self._rounded(self.canvas, 10, 7, width - 11, min(39, height - 12), 17,
-                      fill=self.HEADER, outline="", tags="ui")
-        self.canvas.create_rectangle(11, min(22, height - 16),
-                                     width - 12, min(37, height - 12),
-                                     fill=self.HEADER, outline="", tags="ui")
-        self.canvas.create_line(28, 8, width - 44, 8,
-                                fill="#505b78", width=1, tags="ui")
-        self.canvas.create_line(22, height - 8, width - 22, height - 8,
-                                fill="#26334c", width=1, tags="ui")
+        # Broad, low-contrast reflection on the smoked surface, capped by a
+        # directional hairline like the reference engine's specular highlight.
+        shimmer = (math.sin(self._phase * 0.28) + 1) / 2
+        shimmer_x = 28 + int((width - 100) * shimmer)
+        self._rounded(self.canvas, shimmer_x, 8, shimmer_x + 94, 11, 2,
+                      fill="#414858", outline="", tags="ui")
+        self._draw_glass_hairline(width)
         self._draw_accent_edge(width, height)
 
     def _draw_accent_edge(self, width: int, height: int):
-        colors = ("#208cff", "#41c8ff", "#756bff", "#bd58ff", "#ed62d5")
-        left, right = 28, width - 28
-        segment = (right - left) / len(colors)
-        for index, color in enumerate(colors):
+        self._draw_spectral_rim(width, height - 8, width - 56, 2)
+
+    def _draw_glass_hairline(self, width: int):
+        stops = ("#f5f8ff", "#a8b8d8", "#66728a", "#b8c5df", "#f5f8ff")
+        left, right = 26, width - 40
+        for index in range(len(stops) - 1):
+            x1 = round(left + (right - left) * index / (len(stops) - 1))
+            x2 = round(left + (right - left) * (index + 1) / (len(stops) - 1))
+            self.canvas.create_line(x1, 6, x2, 6,
+                                    fill=self._mix_color(stops[index], stops[index + 1], 0.5),
+                                    width=1, tags="ui")
+
+    def _draw_spectral_rim(self, width: int, y: int, span: int, line_width: int):
+        colors = ("#36a5ff", "#54d9ff", "#7987ff", "#bd68ff", "#f07bdc")
+        left, right = (width - span) // 2, (width + span) // 2
+        segment = (right - left) / (len(colors) - 1)
+        for index, color in enumerate(colors[:-1]):
             x1 = round(left + index * segment)
             x2 = round(left + (index + 1) * segment)
-            self.canvas.create_line(x1, height - 8, x2, height - 8,
-                                    fill=self._dim_color(color), width=5,
+            end = colors[index + 1]
+            self.canvas.create_line(x1, y, x2, y,
+                                    fill=self._dim_color(color), width=line_width + 4,
                                     capstyle=tk.ROUND, tags="ui")
-            self.canvas.create_line(x1, height - 8, x2, height - 8,
-                                    fill=color, width=2,
-                                    capstyle=tk.ROUND, tags="ui")
+            self.canvas.create_line(x1, y, x2, y,
+                                    fill=self._mix_color(color, end, 0.5),
+                                    width=line_width, capstyle=tk.ROUND, tags="ui")
+
+    @staticmethod
+    def _mix_color(start: str, end: str, amount: float) -> str:
+        channels = [
+            round(int(start[offset:offset + 2], 16) * (1 - amount)
+                  + int(end[offset:offset + 2], 16) * amount)
+            for offset in (1, 3, 5)
+        ]
+        return "#{:02x}{:02x}{:02x}".format(*channels)
 
     def _draw_idle(self, width: int):
         glow = self.BLUE if self._status_kind != "error" else self.RED

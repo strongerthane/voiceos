@@ -320,9 +320,9 @@ def main():
     # Official VoiceOS configuration
     ui_config = {
         'theme': 'dark',
-        'background_color': '#0078D7',
-        'text_color': 'white',
-        'accent_color': '#FFD700',
+        'background_color': '#202124',
+        'text_color': '#e8eaed',
+        'accent_color': '#1a73e8',
         'initial_geometry': '348x58',
         'compact_mode': True,
         'animation_enabled': True,

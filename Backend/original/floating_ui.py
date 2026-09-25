@@ -23,19 +23,21 @@ class VoiceOSUI:
     CONFIRM_SIZE = (620, 360)
     TOP_MARGIN = 18
     KEY_COLOR = "#000001"
-    PANEL = "#172133"
-    PANEL_LIGHT = "#202c41"
-    TEXT = "#f7f9ff"
-    MUTED = "#98a2b8"
-    BLUE = "#75a7ff"
-    PURPLE = "#b79cff"
-    GREEN = "#7be0ad"
-    RED = "#ff8f9f"
+    PANEL = "#202124"
+    PANEL_LIGHT = "#292a2d"
+    HEADER = "#3c4043"
+    BORDER = "#5f6368"
+    TEXT = "#e8eaed"
+    MUTED = "#bdc1c6"
+    BLUE = "#1a73e8"
+    PURPLE = "#8ab4f8"
+    GREEN = "#81c995"
+    RED = "#f28b82"
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.theme = config.get("theme", "dark")
-        self.background_color = config.get("background_color", self.PANEL)
+        self.background_color = self.PANEL
         self.text_color = config.get("text_color", self.TEXT)
         self.accent_color = config.get("accent_color", self.BLUE)
         self.assistant = None
@@ -75,15 +77,15 @@ class VoiceOSUI:
         # Retained public widgets keep integration with the existing main/test
         # code, but they live inside the expanded overlay rather than a window.
         self.command_entry = tk.Entry(self.root, bd=0, relief=tk.FLAT,
-                                      bg="#26354d", fg=self.TEXT,
+                                      bg=self.PANEL_LIGHT, fg=self.TEXT,
                                       insertbackground=self.TEXT,
                                       font=("Segoe UI", 10))
         self.run_button = tk.Button(self.root, text="Run", command=self._on_run_command,
-                                    bd=0, bg="#9cc4ff", fg="#0b1020",
-                                    activebackground="#a9c7ff", font=("Segoe UI", 9, "bold"))
+                                    bd=0, bg=self.BLUE, fg="#ffffff",
+                                    activebackground="#4285f4", font=("Segoe UI", 9, "bold"))
         self.mic_button = tk.Button(self.root, text="Mic", command=self._on_mic_command,
-                                    bd=0, bg="#26354d", fg=self.TEXT,
-                                    activebackground="#364a6a", font=("Segoe UI", 9))
+                                    bd=0, bg=self.HEADER, fg=self.TEXT,
+                                    activebackground=self.BORDER, font=("Segoe UI", 9))
         self._entry_window = self.canvas.create_window(190, 202, window=self.command_entry,
                                                         width=250, height=30,
                                                         state="hidden")
@@ -154,31 +156,20 @@ class VoiceOSUI:
             self._draw_active(width, height)
 
     def _draw_liquid_glass(self, width: int, height: int):
-        """Layered, slowly moving highlights that give the overlay a glass feel."""
-        radius = 22
-        self._rounded(self.canvas, 7, 9, width - 1, height - 1, radius + 2,
-                      fill="#080d17", outline="", tags="ui")
-        self._rounded(self.canvas, 4, 4, width - 5, height - 5, radius,
-                      fill=self.PANEL, outline="#71809b", width=1, tags="ui")
+        """Draw all overlay states with consistent dark compose-card styling."""
+        self._rounded(self.canvas, 7, 9, width - 1, height - 1, 22,
+                      fill="#111214", outline="", tags="ui")
+        self._rounded(self.canvas, 4, 4, width - 5, height - 5, 22,
+                      fill=self.PANEL, outline=self.BORDER, width=1, tags="ui")
 
-        drift = (math.sin(self._phase * 0.43) + 1) / 2
-        shimmer_x = -90 + int((width + 120) * drift)
-        glow_color = self.BLUE if self.ui_state in {"idle", "listening"} else self.PURPLE
-        # Kept within the panel bounds so the glints appear submerged in glass.
-        self.canvas.create_oval(max(13, shimmer_x - 82), 9,
-                                min(width - 13, shimmer_x + 70), min(height - 8, 76),
-                                fill="#24395b" if glow_color == self.BLUE else "#3a3157",
-                                outline="", tags="ui")
-        self.canvas.create_oval(max(13, width - shimmer_x // 2 - 44), max(8, height - 54),
-                                min(width - 13, width - shimmer_x // 2 + 92), height - 8,
-                                fill="#26334c", outline="", tags="ui")
-        self._rounded(self.canvas, 10, 8, width - 12, min(35, height - 10), 15,
-                      fill="#2c3b55", outline="#92a5c8", width=1, tags="ui")
-        wave_y = 42 + int(math.sin(self._phase * 0.7) * 4)
-        self.canvas.create_arc(18, wave_y - 24, width - 18, wave_y + 34,
-                               start=188, extent=164, style=tk.ARC,
-                               outline="#91aee0", width=1, tags="ui")
-        self.canvas.create_line(24, 12, width - 42, 12, fill="#d5e4ff", width=1, tags="ui")
+        cap_bottom = min(51, height - 9)
+        self._rounded(self.canvas, 6, 6, width - 7, cap_bottom, 20,
+                      fill=self.HEADER, outline="", tags="ui")
+        self.canvas.create_rectangle(7, min(26, cap_bottom - 3),
+                                     width - 8, cap_bottom,
+                                     fill=self.HEADER, outline="", tags="ui")
+        self.canvas.create_line(22, height - 7, width - 22, height - 7,
+                                fill="#174ea6", width=2, tags="ui")
 
     def _draw_idle(self, width: int):
         glow = self.BLUE if self._status_kind != "error" else self.RED
@@ -217,7 +208,8 @@ class VoiceOSUI:
 
     def _draw_waveform(self, color: str, width: int):
         middle = 113
-        self.canvas.create_line(36, middle, width - 36, middle, fill="#273045", width=1, tags="ui")
+        self.canvas.create_line(36, middle, width - 36, middle,
+                                fill=self.HEADER, width=1, tags="ui")
         for index, x in enumerate(range(42, width - 36, 10)):
             pulse = abs(math.sin(self._phase + index * 0.58))
             amplitude = 8 + pulse * (12 + self._level * 48)
@@ -229,7 +221,7 @@ class VoiceOSUI:
 
     def _draw_result(self, color: str, width: int):
         self._rounded(self.canvas, 24, 76, width - 24, 167, 16,
-                      fill=self.PANEL_LIGHT, outline="#30394d", tags="ui")
+                      fill=self.PANEL_LIGHT, outline=self.HEADER, tags="ui")
         mark = "✓" if self.ui_state == "complete" else "!"
         self.canvas.create_text(51, 122, text=mark, fill=color,
                                 font=("Segoe UI", 25, "bold"), tags="ui")

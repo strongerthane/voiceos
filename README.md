@@ -4,6 +4,7 @@ VoiceOS is a compact desktop voice assistant with a top-of-screen liquid-glass i
 
 ## Features
 
+### Core Features
 - **Desktop App Launcher**: Opens any installed application on your computer by voice (e.g., "open notepad", "launch chrome")
 - **Web Search & Navigation**: Search the web and open websites
 - **YouTube Deep-Linking**: Play specific videos directly (e.g., "play lofi beats on youtube")
@@ -11,6 +12,15 @@ VoiceOS is a compact desktop voice assistant with a top-of-screen liquid-glass i
 - **Claude Code Integration**: Delegate code/file creation to Claude CLI
 - **Offline Actions**: Open apps, websites, and search without AI backends
 - **Hybrid AI Tiers**: Easy questions → Ollama (local), hard questions → OpenAI-compatible API
+
+### Advanced Features
+- **📊 Command History & Analytics**: Track all voice commands, success rates, execution times, and usage patterns
+- **🔄 Workflow Automation**: Chain multiple commands into automated workflows with retries and conditional execution
+- **🎯 Smart App Plugins**: Specialized handlers for Word, Excel, Outlook, PowerPoint (send emails, create documents, etc.)
+- **🔍 Desktop Search**: Full-text search across all saved files with advanced filtering
+- **📅 Command Scheduling**: Schedule commands to run at specific times, daily, weekly, or on custom schedules
+- **🔊 Voice Feedback (TTS)**: Real-time audio confirmations and responses via Windows SAPI
+- **📁 Automated File Organization**: Auto-sort files by date, app type, or custom tags with archiving
 
 ## Requirements
 
@@ -244,6 +254,266 @@ Add to `voiceos_aliases.json`:
 ```
 
 For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833).
+
+## Advanced Features
+
+### 📊 Command History & Analytics
+
+Track all voice commands, success rates, and usage patterns:
+
+```python
+from voice_history import VoiceHistory
+
+history = VoiceHistory()
+
+# Log command execution
+history.log_command(
+    "open notepad and write reminder",
+    action="app_action",
+    success=True,
+    execution_time_ms=1250,
+    app_opened="Notepad"
+)
+
+# Get today's statistics
+stats = history.get_today_stats()
+# Output: {
+#   "total_commands": 5,
+#   "successful_commands": 5,
+#   "failed_commands": 0,
+#   "success_rate": 100.0,
+#   "avg_execution_time_ms": 1250
+# }
+
+# Get most used apps
+apps = history.get_most_used_apps(days=7)
+# Output: [("Notepad", 15), ("Chrome", 12), ("Word", 8)]
+
+# View dashboard
+print(history.get_dashboard_summary())
+```
+
+### 🔄 Workflow Automation
+
+Chain multiple commands into powerful automated workflows:
+
+```python
+from workflow_automation import Workflow, WorkflowLibrary
+
+# Create workflow
+workflow = Workflow("daily_report")
+workflow.add_step("open word")
+workflow.add_step("open word and write daily summary")
+workflow.add_step("save to onedrive")
+workflow.add_step("email to boss@company.com")
+
+# Execute workflow
+def executor(command):
+    # Your command executor function
+    return True, "Success"
+
+workflow.execute(executor)
+
+# Or run in background
+thread = workflow.execute_async(executor)
+
+# Save and load workflows
+workflow.save()
+loaded = Workflow.load("~/.workflows/daily_report.json")
+
+# Library management
+library = WorkflowLibrary()
+workflows = library.list_workflows()
+```
+
+### 🎯 Smart App Plugins
+
+Specialized handlers for Microsoft Office and Outlook:
+
+```python
+from app_plugins import WordPlugin, ExcelPlugin, OutlookPlugin, PowerPointPlugin
+
+# Word automation
+word = WordPlugin()
+word.open()
+word.create_document("My Report")
+word.insert_text("This is my report content")
+word.insert_table(rows=5, cols=3)
+word.save_as("C:\\temp\\report.docx")
+word.close()
+
+# Excel automation
+excel = ExcelPlugin()
+excel.open()
+excel.create_workbook()
+excel.set_cell(1, 1, "Name")
+excel.set_cell(1, 2, "Value")
+excel.create_chart()
+excel.save_as("C:\\temp\\data.xlsx")
+excel.close()
+
+# Outlook automation
+outlook = OutlookPlugin()
+outlook.open()
+outlook.send_email(
+    to="recipient@company.com",
+    subject="Meeting Notes",
+    body="Please review the attached notes"
+)
+outlook.create_appointment("Team Meeting", "2026-09-30 10:00:00", 60)
+outlook.close()
+
+# PowerPoint automation
+ppt = PowerPointPlugin()
+ppt.open()
+ppt.create_presentation()
+ppt.add_slide("Introduction", "My Presentation")
+ppt.add_slide("Content", "Here is the main content")
+ppt.save_as("C:\\temp\\presentation.pptx")
+ppt.close()
+```
+
+### 🔍 Desktop Search & File Organization
+
+Search and organize all VoiceOS files:
+
+```python
+from desktop_search import DesktopSearch, FileOrganizer
+
+# Search files
+search = DesktopSearch()
+results = search.find_files("report", file_type="docx", days=7)
+# Search by app
+notepad_files = search.find_by_app("notepad")
+# Get recent files
+recent = search.find_recent(limit=10)
+# Export search index
+search.export_index()
+
+# Auto-organize files
+organizer = FileOrganizer(organize_by="date_app")
+# Creates structure: YYYY/MM/app_name/files
+summary = organizer.auto_organize(dry_run=False)
+# {
+#   "total_files": 45,
+#   "organized": 42,
+#   "errors": 0,
+#   "moves": [...]
+# }
+
+# Tag files
+organizer.create_tags(file_path, ["important", "report", "2026-Q3"])
+tags = organizer.get_tags(file_path)
+
+# Archive old files
+old_files = organizer.get_cleanup_suggestions(days_old=90)
+organizer.archive_files("C:\\Archive", old_files, cleanup=True)
+```
+
+### 📅 Command Scheduling
+
+Schedule voice commands to run at specific times:
+
+```python
+from command_scheduler import CommandScheduler
+
+scheduler = CommandScheduler()
+
+# Schedule daily at 9:30 AM
+scheduler.schedule_daily("09:30:00", "open outlook")
+
+# Schedule weekly
+scheduler.schedule_weekly("MON 14:00:00", "open word and create weekly report")
+
+# Schedule once
+scheduler.schedule_once("2026-09-30 15:00:00", "open notepad")
+
+# Schedule in N seconds
+scheduler.schedule_in(300, "open calculator")
+
+# Start scheduler (runs in background)
+def executor(command):
+    # Your command executor
+    return True
+
+scheduler.start(executor)
+
+# View upcoming
+print(scheduler.get_summary())
+
+# Cancel command
+scheduler.cancel_command(cmd_id)
+
+# Stop scheduler
+scheduler.stop()
+```
+
+### 🔊 Voice Feedback (Text-to-Speech)
+
+Real-time audio confirmations:
+
+```python
+from voice_feedback import VoiceFeedback, CommandFeedback, VoiceSettings
+
+# Basic voice feedback
+voice = VoiceFeedback(voice_rate=0, voice_volume=100)
+voice.confirm("Opening Notepad")
+voice.success("File saved successfully")
+voice.error("Failed to open application")
+voice.info("Processing your command")
+
+# Command-specific feedback
+feedback = CommandFeedback(voice)
+feedback.on_command_start("open word")
+feedback.on_app_opened("Notepad")
+feedback.on_file_saved("report.docx")
+feedback.on_email_sent("boss@company.com")
+feedback.on_upload_complete("OneDrive", "Documents/VoiceOS")
+
+# Configure voice settings
+settings = VoiceSettings()
+settings.set("voice_rate", 2)  # Faster
+settings.set("voice_volume", 80)
+settings.set("confirmations.app_open", True)
+settings.set("confirmations.file_save", True)
+settings.save()
+
+# Toggle on/off
+voice.toggle(False)  # Disable TTS
+```
+
+### Example Advanced Commands
+
+```
+# Workflows
+"run daily report workflow"
+"execute backup workflow"
+
+# Scheduling
+"schedule open outlook daily at 9 AM"
+"remind me to review this file tomorrow at 2 PM"
+"schedule open word weekly on monday at 10 AM"
+
+# Search
+"find all documents from last week"
+"search for reports in my VoiceOS files"
+"show me notepad files from today"
+
+# Organization
+"organize my voiceos files"
+"archive files older than 3 months"
+"tag this file as important"
+
+# Analytics
+"show my command dashboard"
+"what's my success rate this week"
+"what apps did I use most today"
+
+# Feedback
+"speak this out loud: Meeting at 3 PM"
+"confirm when you open the app"
+"disable voice feedback"
+```
 
 ### Example Commands
 

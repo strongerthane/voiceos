@@ -1,0 +1,21 @@
+{
+  "sites": {
+    "github": "https://github.com",
+    "linkedin": "https://www.linkedin.com",
+    "youtube": "https://www.youtube.com",
+    "gmail": "https://mail.google.com",
+    "chatgpt": "https://chat.openai.com",
+    "claude": "https://claude.ai",
+    "twitter": "https://x.com",
+    "reddit": "https://www.reddit.com",
+    "netflix": "https://www.netflix.com",
+    "amazon": "https://www.amazon.com"
+  },
+  "apps": {
+    "word": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    "excel": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+    "teams": "C:\\Program Files\\Microsoft\\Teams\\current\\Teams.exe",
+    "vlc": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
+    "spotify": "C:\\Users\\{USERNAME}\\AppData\\Roaming\\Spotify\\Spotify.exe"
+  }
+}

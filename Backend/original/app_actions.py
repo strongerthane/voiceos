@@ -9,6 +9,8 @@ Handles compound commands like:
 Supports:
 - Text input via clipboard and keyboard automation
 - Auto-saving content locally
+- Emailing saved files
+- Uploading to cloud storage (OneDrive, Google Drive)
 - Opening browser fallback if app not found
 """
 
@@ -16,8 +18,14 @@ import os
 import re
 import time
 import subprocess
+import smtplib
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
+from pathlib import Path
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 try:
     import pyperclip
@@ -251,3 +259,146 @@ if __name__ == "__main__":
         print(f"[ERROR] {filepath}")
     
     print("\n[OK] App actions module OK")
+
+    @staticmethod
+    def email_file(filepath: str, recipient_email: str, subject: str = "VoiceOS File", 
+                   sender_email: str = None, sender_password: str = None) -> Tuple[bool, str]:
+        """
+        Email a saved file to a recipient.
+        
+        Args:
+            filepath: Path to file to email
+            recipient_email: Recipient's email address
+            subject: Email subject
+            sender_email: Sender's email (from voiceos_config.json or environment)
+            sender_password: Sender's app password (from voiceos_config.json or environment)
+        
+        Returns:
+            (success, message)
+        """
+        if not os.path.exists(filepath):
+            return False, f"File not found: {filepath}"
+        
+        # Get credentials from environment if not provided
+        if not sender_email:
+            sender_email = os.getenv("VOICEOS_EMAIL_SENDER")
+        if not sender_password:
+            sender_password = os.getenv("VOICEOS_EMAIL_PASSWORD")
+        
+        if not sender_email or not sender_password:
+            return False, "Email credentials not configured. Set VOICEOS_EMAIL_SENDER and VOICEOS_EMAIL_PASSWORD environment variables."
+        
+        try:
+            # Create email message
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = recipient_email
+            msg['Subject'] = subject
+            
+            body = f"VoiceOS has automatically saved and emailed your file.\n\nFile: {os.path.basename(filepath)}\nTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Attach file
+            with open(filepath, 'rb') as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f'attachment; filename= {os.path.basename(filepath)}')
+                msg.attach(part)
+            
+            # Send via Gmail SMTP (supports app passwords)
+            server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+            server.quit()
+            
+            return True, f"Email sent to {recipient_email}"
+        
+        except Exception as e:
+            return False, f"Email failed: {str(e)}"
+    
+    @staticmethod
+    def upload_to_onedrive(filepath: str, folder_name: str = "VoiceOS") -> Tuple[bool, str]:
+        """
+        Upload saved file to OneDrive (Windows built-in).
+        
+        Args:
+            filepath: Path to file to upload
+            folder_name: OneDrive folder name (default: VoiceOS)
+        
+        Returns:
+            (success, message)
+        """
+        if not os.path.exists(filepath):
+            return False, f"File not found: {filepath}"
+        
+        try:
+            # OneDrive is typically at: C:\Users\[user]\OneDrive
+            username = os.getenv('USERNAME')
+            onedrive_path = Path(f"C:\\Users\\{username}\\OneDrive\\{folder_name}")
+            
+            if not onedrive_path.exists():
+                onedrive_path.mkdir(parents=True, exist_ok=True)
+            
+            # Copy file to OneDrive
+            dest_path = onedrive_path / os.path.basename(filepath)
+            with open(filepath, 'rb') as src:
+                with open(dest_path, 'wb') as dst:
+                    dst.write(src.read())
+            
+            return True, f"Uploaded to OneDrive: {dest_path}"
+        
+        except Exception as e:
+            return False, f"OneDrive upload failed: {str(e)}"
+    
+    @staticmethod
+    def upload_to_google_drive(filepath: str, folder_id: str = None) -> Tuple[bool, str]:
+        """
+        Upload saved file to Google Drive (requires google-auth-oauthlib).
+        
+        Args:
+            filepath: Path to file to upload
+            folder_id: Google Drive folder ID (optional)
+        
+        Returns:
+            (success, message)
+        """
+        if not os.path.exists(filepath):
+            return False, f"File not found: {filepath}"
+        
+        try:
+            from google.auth.transport.requests import Request
+            from google.oauth2.credentials import Credentials
+            from google_auth_oauthlib.flow import InstalledAppFlow
+            from googleapiclient.discovery import build
+            from googleapiclient.http import MediaFileUpload
+        except ImportError:
+            return False, "Google Drive upload requires: pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client"
+        
+        try:
+            # Get credentials (requires OAuth setup)
+            SCOPES = ['https://www.googleapis.com/auth/drive.file']
+            creds = None
+            
+            if os.path.exists('token.json'):
+                creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+            
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                else:
+                    return False, "Google Drive credentials not configured. Run OAuth setup first."
+            
+            # Upload file
+            service = build('drive', 'v3', credentials=creds)
+            file_metadata = {'name': os.path.basename(filepath)}
+            if folder_id:
+                file_metadata['parents'] = [folder_id]
+            
+            media = MediaFileUpload(filepath, resumable=True)
+            file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            
+            return True, f"Uploaded to Google Drive: {file.get('id')}"
+        
+        except Exception as e:
+            return False, f"Google Drive upload failed: {str(e)}"

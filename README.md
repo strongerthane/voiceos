@@ -193,6 +193,58 @@ All files created via voice commands are saved to:
 Documents\VoiceOS\
 ```
 
+### Email & Cloud Storage
+
+Files can be automatically emailed or uploaded to cloud storage:
+
+**Email Files:**
+```python
+from app_actions import AppActions
+
+AppActions.email_file(
+    filepath="Documents/VoiceOS/note_20260925_143000.txt",
+    recipient_email="friend@example.com",
+    subject="My VoiceOS Note"
+)
+```
+
+**Upload to OneDrive (Built-in Windows):**
+```python
+AppActions.upload_to_onedrive(
+    filepath="Documents/VoiceOS/note_20260925_143000.txt",
+    folder_name="VoiceOS"  # Creates VoiceOS folder in OneDrive if it doesn't exist
+)
+```
+
+**Upload to Google Drive:**
+```python
+AppActions.upload_to_google_drive(
+    filepath="Documents/VoiceOS/note_20260925_143000.txt",
+    folder_id="your-google-drive-folder-id"  # Optional
+)
+```
+
+**Configuration:**
+
+Add to `voiceos_aliases.json`:
+```json
+{
+  "email": {
+    "enabled": true,
+    "sender_email": "your-email@gmail.com",
+    "app_password": "your-app-password"
+  },
+  "cloud_storage": {
+    "onedrive_enabled": true,
+    "onedrive_folder": "VoiceOS",
+    "google_drive_enabled": false,
+    "google_drive_folder_id": null
+  }
+}
+```
+
+For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833).
+
 ### Example Commands
 
 ```
@@ -205,3 +257,4 @@ Documents\VoiceOS\
 "open word and create a report"        # Opens with creation prompt
 "open blender"                         # Not found → Opens download page
 ```
+

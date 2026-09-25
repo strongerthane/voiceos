@@ -17,5 +17,17 @@
     "teams": "C:\\Program Files\\Microsoft\\Teams\\current\\Teams.exe",
     "vlc": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
     "spotify": "C:\\Users\\{USERNAME}\\AppData\\Roaming\\Spotify\\Spotify.exe"
+  },
+  "email": {
+    "enabled": false,
+    "sender_email": "your-email@gmail.com",
+    "app_password": "your-app-password-here"
+  },
+  "cloud_storage": {
+    "onedrive_enabled": true,
+    "onedrive_folder": "VoiceOS",
+    "google_drive_enabled": false,
+    "google_drive_folder_id": null
   }
 }
+

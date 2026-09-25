@@ -2,6 +2,16 @@
 
 VoiceOS is a compact desktop voice assistant with a top-of-screen liquid-glass interface, reactive listening waveform, sounddevice microphone capture, NVIDIA GLM/OpenAI-compatible AI routing, and text-to-speech responses.
 
+## Features
+
+- **Desktop App Launcher**: Opens any installed application on your computer by voice (e.g., "open notepad", "launch chrome")
+- **Web Search & Navigation**: Search the web and open websites
+- **YouTube Deep-Linking**: Play specific videos directly (e.g., "play lofi beats on youtube")
+- **Email Drafting**: Compose emails through your default mail client (human presses Send)
+- **Claude Code Integration**: Delegate code/file creation to Claude CLI
+- **Offline Actions**: Open apps, websites, and search without AI backends
+- **Hybrid AI Tiers**: Easy questions → Ollama (local), hard questions → OpenAI-compatible API
+
 ## Requirements
 
 - Windows 10 or Windows 11
@@ -106,4 +116,56 @@ If no microphone is detected, check Windows microphone permissions under **Setti
 - `Backend/original/floating_ui.py` — liquid-glass floating interface
 - `Backend/original/voice_io.py` — sounddevice capture, SpeechRecognition audio conversion, and TTS
 - `Backend/original/voice_diagnostics.py` — microphone and transcription checks
+- `Backend/original/app_discovery.py` — Windows app discovery and launcher
+- `Backend/original/task_actions.py` — intent parsing and action execution
+- `Backend/original/assistant.py` — main AI routing and command handling
 - `VoiceOS.cmd` — one-click Windows launcher
+
+## Opening Desktop Applications
+
+VoiceOS automatically discovers installed applications on your Windows computer. You can open any app by name:
+
+```
+"open notepad"
+"launch calculator"
+"start chrome"
+"open microsoft edge"
+```
+
+### App Discovery
+
+The app launcher scans:
+- Windows Registry for installed software
+- Program Files and Program Files (x86)
+- Desktop and Start Menu shortcuts
+- Built-in Windows system applications (Notepad, Calculator, Paint, etc.)
+
+Apps are cached on first run for fast access. App names are normalized and support fuzzy matching, so you can say variations like "calc" for Calculator or "notepad" for Notepad.
+
+### Custom App Aliases
+
+To customize app names or add shortcuts, create a `voiceos_aliases.json` file in `Backend/original/`:
+
+```json
+{
+  "apps": {
+    "myapp": "C:\\Path\\To\\MyApp.exe",
+    "word": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"
+  },
+  "sites": {
+    "mysite": "https://example.com"
+  }
+}
+```
+
+Custom aliases take precedence over auto-discovered apps, so you can override names or add specific paths.
+
+### Example Commands
+
+```
+"open notepad"                    # Opens built-in Notepad
+"launch chrome"                   # Opens Google Chrome
+"start task manager"              # Opens Task Manager
+"run file explorer"               # Opens File Explorer
+"open calculator and calculate"   # Opens Calculator (search component ignored)
+```

@@ -44,6 +44,30 @@ set VOICEOS_API_KEY=your-key-here
 
 Do not put real keys in Python files, JSON files, screenshots, or Git commits. The repository ignores `.env` files and common credential filenames.
 
+## Run with Ollama (local and private)
+
+VoiceOS can use Ollama instead of a cloud API. Install Ollama from [ollama.com](https://ollama.com), then open a new terminal and download a model:
+
+```bat
+ollama pull llama3.2:3b
+```
+
+Leave Ollama running in the background. VoiceOS automatically checks `http://localhost:11434` and uses `llama3.2:3b` by default. To choose another local model, set these variables before launching:
+
+```bat
+set VOICEOS_OLLAMA_URL=http://localhost:11434
+set VOICEOS_OLLAMA_MODEL=llama3.2:3b
+VoiceOS.cmd
+```
+
+You can confirm that Ollama is available with:
+
+```bat
+ollama list
+```
+
+No API key is needed for the Ollama tier. If Ollama is unavailable, the assistant can still perform its local action handlers; cloud-backed answers require the API configuration described above.
+
 ## Run VoiceOS
 
 From the repository folder, double-click `VoiceOS.cmd`, or run:

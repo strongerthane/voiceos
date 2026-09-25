@@ -117,6 +117,7 @@ If no microphone is detected, check Windows microphone permissions under **Setti
 - `Backend/original/voice_io.py` — sounddevice capture, SpeechRecognition audio conversion, and TTS
 - `Backend/original/voice_diagnostics.py` — microphone and transcription checks
 - `Backend/original/app_discovery.py` — Windows app discovery and launcher
+- `Backend/original/app_actions.py` — execute actions within opened applications
 - `Backend/original/task_actions.py` — intent parsing and action execution
 - `Backend/original/assistant.py` — main AI routing and command handling
 - `VoiceOS.cmd` — one-click Windows launcher
@@ -132,6 +133,23 @@ VoiceOS automatically discovers installed applications on your Windows computer.
 "open microsoft edge"
 ```
 
+### Compound App Actions
+
+Go beyond just opening apps—execute actions *within* the app using a single voice command:
+
+```
+"open notepad and write hello world"     -> Opens Notepad, writes text, auto-saves
+"open calculator and add 5 and 3"        -> Opens Calculator, saves calculation
+"open word and create a document"        -> Opens Word with creation prompt
+"open notepad and type my reminder"      -> Opens Notepad and types text
+```
+
+VoiceOS automatically saves created content to `Documents\VoiceOS\` with timestamps:
+```
+note_20260925_134131.txt
+calculator_calc_20260925_134134.txt
+```
+
 ### App Discovery
 
 The app launcher scans:
@@ -141,6 +159,14 @@ The app launcher scans:
 - Built-in Windows system applications (Notepad, Calculator, Paint, etc.)
 
 Apps are cached on first run for fast access. App names are normalized and support fuzzy matching, so you can say variations like "calc" for Calculator or "notepad" for Notepad.
+
+### Fallback to Browser
+
+If an app isn't installed locally, VoiceOS automatically opens a web search:
+
+```
+"open blender"  -> App not found → Opens web search to download it
+```
 
 ### Custom App Aliases
 
@@ -160,12 +186,22 @@ To customize app names or add shortcuts, create a `voiceos_aliases.json` file in
 
 Custom aliases take precedence over auto-discovered apps, so you can override names or add specific paths.
 
+### Saved Files Location
+
+All files created via voice commands are saved to:
+```
+Documents\VoiceOS\
+```
+
 ### Example Commands
 
 ```
-"open notepad"                    # Opens built-in Notepad
-"launch chrome"                   # Opens Google Chrome
-"start task manager"              # Opens Task Manager
-"run file explorer"               # Opens File Explorer
-"open calculator and calculate"   # Opens Calculator (search component ignored)
+"open notepad"                         # Opens built-in Notepad
+"launch chrome"                        # Opens Google Chrome
+"start task manager"                   # Opens Task Manager
+"run file explorer"                    # Opens File Explorer
+"open notepad and write my ideas"      # Writes and saves text
+"open calculator and add 5 and 3"      # Saves calculation
+"open word and create a report"        # Opens with creation prompt
+"open blender"                         # Not found → Opens download page
 ```

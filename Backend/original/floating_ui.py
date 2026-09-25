@@ -18,15 +18,15 @@ import tkinter as tk
 class VoiceOSUI:
     """A compact floating VoiceOS interface with listening/task states."""
 
-    IDLE_SIZE = (348, 58)
-    ACTIVE_SIZE = (475, 230)
+    IDLE_SIZE = (390, 70)
+    ACTIVE_SIZE = (520, 220)
     CONFIRM_SIZE = (620, 360)
     TOP_MARGIN = 18
     KEY_COLOR = "#000001"
-    PANEL = "#202124"
-    PANEL_LIGHT = "#24262b"
-    HEADER = "#35383f"
-    BORDER = "#555b66"
+    PANEL = "#10131b"
+    PANEL_LIGHT = "#171b25"
+    HEADER = "#191e2a"
+    BORDER = "#394153"
     TEXT = "#f4f6fb"
     MUTED = "#c3c9d4"
     BLUE = "#1a73e8"
@@ -88,13 +88,13 @@ class VoiceOSUI:
                                     bd=0, bg=self.HEADER, fg=self.TEXT,
                                     activebackground=self.BORDER, font=("Segoe UI", 9),
                                     cursor="hand2", relief=tk.FLAT)
-        self._entry_window = self.canvas.create_window(187, 199, window=self.command_entry,
-                                                        width=249, height=31,
+        self._entry_window = self.canvas.create_window(206, 191, window=self.command_entry,
+                                                        width=278, height=34,
                                                         state="hidden")
-        self._run_window = self.canvas.create_window(337, 199, window=self.run_button,
-                                                      width=53, height=31, state="hidden")
-        self._mic_window = self.canvas.create_window(399, 199, window=self.mic_button,
-                                                      width=53, height=31, state="hidden")
+        self._run_window = self.canvas.create_window(378, 191, window=self.run_button,
+                                                      width=58, height=34, state="hidden")
+        self._mic_window = self.canvas.create_window(447, 191, window=self.mic_button,
+                                                      width=64, height=34, state="hidden")
 
         # Compatibility status objects used by current feedback integrations.
         self.status_card = tk.Frame(self.root, bg=self.PANEL)
@@ -158,50 +158,51 @@ class VoiceOSUI:
             self._draw_active(width, height)
 
     def _draw_liquid_glass(self, width: int, height: int):
-        """Paint a restrained glass surface with a crisp silhouette."""
-        self._rounded(self.canvas, 6, 8, width - 1, height - 1, 15,
-                      fill="#101216", outline="", tags="ui")
-        self._rounded(self.canvas, 4, 4, width - 5, height - 7, 14,
-                      fill=self.PANEL, outline="#4a4f59", width=1, tags="ui")
-        self._rounded(self.canvas, 6, 6, width - 7, height - 9, 13,
-                      fill=self.PANEL, outline="#292d35", width=1, tags="ui")
+        """Layer a subtle glass highlight over a dark floating island."""
+        self._rounded(self.canvas, 7, 9, width - 1, height - 1, 25,
+                      fill="#080a10", outline="", tags="ui")
+        self._rounded(self.canvas, 4, 4, width - 5, height - 7, 24,
+                      fill=self.PANEL, outline="#343a49", width=1, tags="ui")
+        self._rounded(self.canvas, 7, 6, width - 8, height - 10, 22,
+                      fill=self.PANEL, outline="#1d2330", width=1, tags="ui")
 
-        cap_bottom = min(46, height - 9)
-        self._rounded(self.canvas, 6, 6, width - 7, cap_bottom, 13,
+        # Cool reflected light at the top and edge highlights create glass
+        # depth without the old gray title-bar/beveled-button look.
+        self._rounded(self.canvas, 10, 7, width - 11, min(39, height - 12), 17,
                       fill=self.HEADER, outline="", tags="ui")
-        self.canvas.create_rectangle(7, min(27, cap_bottom - 3),
-                                     width - 8, cap_bottom,
+        self.canvas.create_rectangle(11, min(22, height - 16),
+                                     width - 12, min(37, height - 12),
                                      fill=self.HEADER, outline="", tags="ui")
-        self.canvas.create_line(20, 8, width - 30, 8,
-                                fill="#5a606b", width=1, tags="ui")
-        self.canvas.create_line(18, cap_bottom - 1, width - 18, cap_bottom - 1,
-                                fill="#424751", width=1, tags="ui")
+        self.canvas.create_line(28, 8, width - 44, 8,
+                                fill="#505b78", width=1, tags="ui")
+        self.canvas.create_line(22, height - 8, width - 22, height - 8,
+                                fill="#26334c", width=1, tags="ui")
         self._draw_accent_edge(width, height)
 
     def _draw_accent_edge(self, width: int, height: int):
-        colors = ("#247bff", "#429cff", "#7c6bff", "#bb5cff")
-        left, right = 22, width - 22
+        colors = ("#208cff", "#41c8ff", "#756bff", "#bd58ff", "#ed62d5")
+        left, right = 28, width - 28
         segment = (right - left) / len(colors)
         for index, color in enumerate(colors):
             x1 = round(left + index * segment)
             x2 = round(left + (index + 1) * segment)
-            self.canvas.create_line(x1, height - 7, x2, height - 7,
-                                    fill=color, width=2, tags="ui")
+            self.canvas.create_line(x1, height - 8, x2, height - 8,
+                                    fill=self._dim_color(color), width=5,
+                                    capstyle=tk.ROUND, tags="ui")
+            self.canvas.create_line(x1, height - 8, x2, height - 8,
+                                    fill=color, width=2,
+                                    capstyle=tk.ROUND, tags="ui")
 
     def _draw_idle(self, width: int):
         glow = self.BLUE if self._status_kind != "error" else self.RED
-        self.canvas.create_oval(17, 15, 41, 39, fill="#26384e", outline="", tags="ui")
-        self.canvas.create_oval(19, 17, 39, 37, fill=glow, outline="", tags="ui")
-        self.canvas.create_oval(25, 23, 33, 31, fill="#ffffff", outline="", tags="ui")
-        self.canvas.create_text(51, 21, text="VoiceOS", anchor="w", fill=self.TEXT,
-                                font=("Segoe UI", 11, "bold"), tags="ui")
-        self.canvas.create_text(51, 38, text=self._status_message, anchor="w",
-                                fill="#cbd1dc", font=("Segoe UI", 9), tags="ui")
-        for index, (dx, dy) in enumerate(((0, 3), (5, 0), (10, 4))):
-            self.canvas.create_line(width - 39 + dx, 31 + dy,
-                                    width - 33 + dx, 34 - dy,
-                                    fill=("#36a3ff", "#a18aff", "#ef78dc")[index],
-                                    width=2, capstyle=tk.ROUND, tags="ui")
+        self.canvas.create_oval(17, 19, 49, 51, fill="#172b49", outline="", tags="ui")
+        self.canvas.create_oval(20, 22, 46, 48, fill=glow, outline="", tags="ui")
+        self.canvas.create_oval(28, 30, 38, 40, fill="#f8fbff", outline="", tags="ui")
+        self.canvas.create_text(62, 27, text="VoiceOS", anchor="w", fill="#f7f8fc",
+                                font=("Segoe UI", 12, "bold"), tags="ui")
+        self.canvas.create_text(62, 46, text=self._status_message, anchor="w",
+                                fill="#c7cddd", font=("Segoe UI", 10), tags="ui")
+        self._draw_siri_wave(width - 48, 35, 27, mini=True)
 
     def _draw_active(self, width: int, height: int):
         if self.ui_state == "confirm":
@@ -212,12 +213,12 @@ class VoiceOSUI:
         label = {"listening": "Listening", "thinking": "Thinking",
                  "executing": "Working", "complete": "Completed",
                  "error": "Couldn’t complete", "confirm": "Confirm action"}.get(self.ui_state, "VoiceOS")
-        self.canvas.create_oval(22, 12, 40, 30, fill=color, outline="", tags="ui")
-        self.canvas.create_text(50, 20, text=label, anchor="w", fill=self.TEXT,
+        self.canvas.create_oval(22, 14, 40, 32, fill=color, outline="", tags="ui")
+        self.canvas.create_text(50, 22, text=label, anchor="w", fill=self.TEXT,
                                 font=("Segoe UI", 12, "bold"), tags="ui")
-        self.canvas.create_text(50, 38, text=self._status_message, anchor="w", fill=self.MUTED,
-                                width=390, font=("Segoe UI", 10), tags="ui")
-        self.canvas.create_text(width - 25, 30, text="×", fill=self.MUTED,
+        self.canvas.create_text(50, 42, text=self._status_message, anchor="w", fill=self.MUTED,
+                                width=420, font=("Segoe UI", 10), tags="ui")
+        self.canvas.create_text(width - 27, 27, text="×", fill="#aeb7c9",
                                 font=("Segoe UI", 15), tags="ui")
         if self.ui_state in {"listening", "thinking", "executing"}:
             self._draw_waveform(color, width)
@@ -228,26 +229,57 @@ class VoiceOSUI:
         self.canvas.itemconfigure(self._mic_window, state="normal")
 
     def _draw_waveform(self, color: str, width: int):
-        middle = 108
-        positions = list(range(36, width - 34, 10))
-        center = (len(positions) - 1) / 2
-        max_distance = max(center, 1)
-        for index, x in enumerate(positions):
-            distance = abs(index - center) / max_distance
-            envelope = 0.58 + 0.42 * (1 - distance ** 1.5)
-            wave = (0.53
-                    + 0.29 * math.sin(self._phase * 1.25 - index * 0.39)
-                    + 0.18 * math.sin(self._phase * 0.72 + index * 0.23))
-            amplitude = (6 + max(0.12, wave) * (14 + self._level * 18)) * envelope
-            bar_color = self._spectrum_color(index / max(len(positions) - 1, 1))
-            self.canvas.create_line(x, middle - amplitude, x, middle + amplitude,
-                                    fill=self._dim_color(bar_color), width=8,
-                                    capstyle=tk.ROUND, tags="ui")
-            self.canvas.create_line(x, middle - amplitude, x, middle + amplitude,
-                                    fill=bar_color, width=3, capstyle=tk.ROUND, tags="ui")
+        self._draw_siri_wave(width // 2, 112, width - 110)
         detail = "Speak naturally — I’ll stop after a short pause." if self.ui_state == "listening" else "I’m processing your request."
         self.canvas.create_text(width // 2, 163, text=detail, fill="#d2d7e0",
                                 font=("Segoe UI", 10), tags="ui")
+
+    def _draw_siri_wave(self, center_x: int, center_y: int, span: int, mini: bool = False):
+        """Draw a luminous, fluid waveform with a moving spectral gradient."""
+        count = 19 if mini else 55
+        amplitude_scale = 4 if mini else 24
+        points = []
+        for index in range(count):
+            position = index / (count - 1)
+            distance = abs(position * 2 - 1)
+            envelope = 0.1 + 0.9 * (1 - distance) ** 1.2
+            wave = (0.62 * math.sin(position * 15 - self._phase * 1.7)
+                    + 0.24 * math.sin(position * 25 + self._phase * 1.1)
+                    + 0.14 * math.sin(position * 37 - self._phase * 0.8))
+            amplitude = wave * envelope * amplitude_scale
+            x = center_x - span / 2 + position * span
+            y = center_y - amplitude
+            points.append((x, y))
+
+        coordinates = [coordinate for point in points for coordinate in point]
+        self.canvas.create_line(*coordinates, fill="#38275e",
+                                width=9 if mini else 19, capstyle=tk.ROUND,
+                                joinstyle=tk.ROUND, smooth=True, splinesteps=16,
+                                tags="ui")
+        self.canvas.create_line(*coordinates, fill="#2769b8",
+                                width=5 if mini else 9, capstyle=tk.ROUND,
+                                joinstyle=tk.ROUND, smooth=True, splinesteps=16,
+                                tags="ui")
+
+        chunk_size = 4
+        for start in range(0, len(points) - 1, chunk_size - 1):
+            segment = points[start:min(start + chunk_size, len(points))]
+            segment_coordinates = [coordinate for point in segment for coordinate in point]
+            position = (start + (len(segment) - 1) / 2) / (len(points) - 1)
+            color = self._spectrum_color(position)
+            self.canvas.create_line(*segment_coordinates,
+                                    fill=self._dim_color(color),
+                                    width=8 if mini else 14,
+                                    capstyle=tk.ROUND, joinstyle=tk.ROUND,
+                                    smooth=True, splinesteps=12, tags="ui")
+            self.canvas.create_line(*segment_coordinates, fill=color,
+                                    width=2 if mini else 4,
+                                    capstyle=tk.ROUND, joinstyle=tk.ROUND,
+                                    smooth=True, splinesteps=12, tags="ui")
+        if not mini:
+            self.canvas.create_line(*coordinates, fill="#bceaff", width=1,
+                                    capstyle=tk.ROUND, joinstyle=tk.ROUND,
+                                    smooth=True, splinesteps=16, tags="ui")
 
     @staticmethod
     def _dim_color(color: str) -> str:

@@ -20,7 +20,7 @@ class VoiceOSUI:
 
     IDLE_SIZE = (348, 58)
     ACTIVE_SIZE = (480, 242)
-    CONFIRM_SIZE = (480, 292)
+    CONFIRM_SIZE = (620, 360)
     TOP_MARGIN = 18
     KEY_COLOR = "#000001"
     PANEL = "#172133"
@@ -192,6 +192,10 @@ class VoiceOSUI:
                                 font=("Segoe UI Symbol", 20), tags="ui")
 
     def _draw_active(self, width: int, height: int):
+        if self.ui_state == "confirm":
+            self._draw_confirmation(width, height)
+            return
+
         color = self.BLUE if self.ui_state == "listening" else self.PURPLE
         label = {"listening": "Listening", "thinking": "Thinking",
                  "executing": "Working", "complete": "Completed",
@@ -207,12 +211,9 @@ class VoiceOSUI:
             self._draw_waveform(color, width)
         else:
             self._draw_result(color, width)
-        if self.ui_state == "confirm":
-            self._draw_confirmation(width)
-        else:
-            self.canvas.itemconfigure(self._entry_window, state="normal")
-            self.canvas.itemconfigure(self._run_window, state="normal")
-            self.canvas.itemconfigure(self._mic_window, state="normal")
+        self.canvas.itemconfigure(self._entry_window, state="normal")
+        self.canvas.itemconfigure(self._run_window, state="normal")
+        self.canvas.itemconfigure(self._mic_window, state="normal")
 
     def _draw_waveform(self, color: str, width: int):
         middle = 113
@@ -237,38 +238,108 @@ class VoiceOSUI:
         self.canvas.create_text(77, 130, text=self._status_message, anchor="w", fill=self.MUTED,
                                 width=330, font=("Segoe UI", 9), tags="ui")
 
-    def _draw_confirmation(self, width: int):
+    def _draw_confirmation(self, width: int, height: int):
         self.canvas.itemconfigure(self._entry_window, state="hidden")
         self.canvas.itemconfigure(self._run_window, state="hidden")
         self.canvas.itemconfigure(self._mic_window, state="hidden")
-        self._rounded(self.canvas, 24, 76, width - 24, 244, 16,
-                      fill=self.PANEL_LIGHT, outline="#46516a", tags="ui")
+
+        # A luminous blue surround frames a Gmail-inspired draft preview.
+        card_left, card_top = 34, 34
+        card_right, card_bottom = width - 34, height - 32
+        self._rounded(self.canvas, card_left - 7, card_top - 4,
+                      card_right + 7, card_bottom + 8, 26,
+                      fill="#123d91", outline="#1761d5", width=2, tags="ui")
+        self._rounded(self.canvas, card_left, card_top,
+                      card_right, card_bottom, 22,
+                      fill="#202124", outline="#667085", width=1, tags="ui")
+
+        header_bottom = card_top + 44
+        self._rounded(self.canvas, card_left + 1, card_top + 1,
+                      card_right - 1, header_bottom + 12, 21,
+                      fill="#3c4043", outline="", tags="ui")
+        self.canvas.create_rectangle(card_left + 1, header_bottom - 3,
+                                     card_right - 1, header_bottom + 12,
+                                     fill="#3c4043", outline="", tags="ui")
+        self.canvas.create_oval(card_left + 18, card_top + 13,
+                                card_left + 35, card_top + 30,
+                                fill="#f7f7f7", outline="", tags="ui")
+        self.canvas.create_text(card_left + 26.5, card_top + 21,
+                                text="M", fill="#d93025",
+                                font=("Segoe UI", 9, "bold"), tags="ui")
+        self.canvas.create_text(card_left + 48, card_top + 22,
+                                text="New Message", anchor="w", fill="#f1f3f4",
+                                font=("Segoe UI", 11, "bold"), tags="ui")
+        self.canvas.create_text(card_right - 20, card_top + 22, text="×",
+                                fill="#bdc1c6", font=("Segoe UI", 16),
+                                tags="ui")
+
         command = self._pending_command or ""
         recipient = self._extract_recipient(command)
         subject = self._extract_subject(command)
-        self.canvas.create_text(44, 101, text="Email draft", anchor="w", fill=self.TEXT,
-                                font=("Segoe UI", 10, "bold"), tags="ui")
-        self.canvas.create_text(44, 129, text=f"To: {recipient}", anchor="w", fill=self.MUTED,
+
+        to_y = header_bottom + 25
+        subject_y = to_y + 40
+        body_top = subject_y + 27
+        footer_y = card_bottom - 39
+        self.canvas.create_text(card_left + 20, to_y, text="To",
+                                anchor="w", fill="#bdc1c6",
+                                font=("Segoe UI", 10), tags="ui")
+        chip_left = card_left + 57
+        chip_right = min(card_right - 20, chip_left + max(116, min(300, len(recipient) * 7 + 24)))
+        self._rounded(self.canvas, chip_left, to_y - 15, chip_right, to_y + 13, 14,
+                      fill="#303b4a", outline="", tags="ui")
+        self.canvas.create_text(chip_left + 12, to_y - 1,
+                                text=recipient, anchor="w", fill="#d7e3f4",
+                                width=chip_right - chip_left - 20,
                                 font=("Segoe UI", 9), tags="ui")
-        self.canvas.create_text(44, 151, text=f"Subject: {subject}", anchor="w", fill=self.MUTED,
-                                font=("Segoe UI", 9), tags="ui")
-        self.canvas.create_text(44, 181, text="Review this draft action before VoiceOS continues.", anchor="w",
-                                fill=self.MUTED, font=("Segoe UI", 8), tags="ui")
-        self.canvas.create_text(335, 216, text="Cancel", fill=self.MUTED,
-                                font=("Segoe UI", 9, "bold"), tags=("ui", "cancel"))
-        self._rounded(self.canvas, 371, 196, 440, 232, 11, fill=self.BLUE, outline="", tags=("ui", "approve"))
-        self.canvas.create_text(405, 214, text="Approve", fill="#09101f",
+        self.canvas.create_line(card_left + 18, to_y + 22, card_right - 18, to_y + 22,
+                                fill="#3c4043", tags="ui")
+
+        self.canvas.create_text(card_left + 20, subject_y, text=subject,
+                                anchor="w", fill="#e8eaed",
+                                width=card_right - card_left - 40,
+                                font=("Segoe UI", 10), tags="ui")
+        self.canvas.create_line(card_left + 18, subject_y + 17,
+                                card_right - 18, subject_y + 17,
+                                fill="#3c4043", tags="ui")
+
+        body = self._extract_body(command) or ""
+        self.canvas.create_text(card_left + 20, body_top, text=body,
+                                anchor="nw", fill="#e8eaed",
+                                width=card_right - card_left - 40,
+                                font=("Segoe UI", 10), tags="ui")
+        self.canvas.create_text(card_left + 20, footer_y - 12,
+                                text="This opens a draft in your mail app. Review and send it there.",
+                                anchor="w", fill="#9aa0a6",
+                                font=("Segoe UI", 8), tags="ui")
+        self.canvas.create_text(width - 205, footer_y + 8, text="Cancel",
+                                fill="#bdc1c6", font=("Segoe UI", 9, "bold"),
+                                tags=("ui", "cancel"))
+        button_left, button_right = width - 168, width - 47
+        self._rounded(self.canvas, button_left, footer_y - 10,
+                      button_right, footer_y + 27, 13,
+                      fill="#1a73e8", outline="", tags=("ui", "approve"))
+        self.canvas.create_text((button_left + button_right) / 2, footer_y + 8,
+                                text="Open draft", fill="#ffffff",
                                 font=("Segoe UI", 9, "bold"), tags=("ui", "approve"))
 
     @staticmethod
     def _extract_recipient(command: str) -> str:
         match = re.search(r"\bto\s+(.+?)(?:\s+(?:about|subject|with|saying)\b|$)", command, re.I)
-        return match.group(1).strip().title() if match else "Recipient to be resolved"
+        if not match:
+            return "Recipient to be resolved"
+        recipient = match.group(1).strip()
+        return recipient if "@" in recipient else recipient.title()
 
     @staticmethod
     def _extract_subject(command: str) -> str:
-        match = re.search(r"\b(?:about|subject)\s+(.+)$", command, re.I)
-        return match.group(1).strip().capitalize() if match else "Draft requested by voice"
+        match = re.search(r"\b(?:about|subject)\s+(.+?)(?:\s+(?:saying|with body)\b|$)", command, re.I)
+        return match.group(1).strip() if match else "Draft requested by voice"
+
+    @staticmethod
+    def _extract_body(command: str) -> str:
+        match = re.search(r"\b(?:saying|with body)\s+(.+)$", command, re.I)
+        return match.group(1).strip() if match else ""
 
     def _tick(self):
         self._phase += 0.24
@@ -300,13 +371,18 @@ class VoiceOSUI:
         self._collapse_job = self.root.after(milliseconds, self._collapse)
 
     def _on_canvas_click(self, event):
+        if self.ui_state == "confirm" and event.x >= self.root.winfo_width() - 68 and event.y < 62:
+            self.root.destroy()
+            return
         if event.x > self.root.winfo_width() - 52 and event.y < 56:
             self.root.destroy()
             return
         if self.ui_state == "confirm":
-            if event.x >= 368 and event.y >= 188:
+            height = self.root.winfo_height()
+            width = self.root.winfo_width()
+            if width - 168 <= event.x <= width - 47 and height - 81 <= event.y <= height - 44:
                 self._approve_pending()
-            elif 292 <= event.x <= 366 and event.y >= 188:
+            elif width - 255 <= event.x < width - 176 and height - 81 <= event.y <= height - 44:
                 self._cancel_pending()
             return
         if self.ui_state == "idle":

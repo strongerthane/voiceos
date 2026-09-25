@@ -141,6 +141,8 @@ def _contacts_path() -> str:
 def load_aliases():
     sites = dict(SITE_ALIASES)
     apps = dict(APP_ALIASES)
+    
+    # Load user-configured aliases
     try:
         with open(_alias_path(), "r", encoding="utf-8") as fh:
             data = json.load(fh)
@@ -153,6 +155,14 @@ def load_aliases():
         pass
     except (OSError, json.JSONDecodeError) as e:
         print(f"⚠️  Ignoring unreadable voiceos_aliases.json ({e})")
+    
+    # Auto-discover installed Windows applications
+    try:
+        from app_discovery import merge_discovered_apps
+        apps = merge_discovered_apps(apps)
+    except Exception as e:
+        print(f"⚠️  App discovery unavailable ({e})")
+    
     return sites, apps
 
 
@@ -301,14 +311,29 @@ class IntentParser:
         return None
 
     def _resolve(self, target: str) -> Dict[str, Any]:
+        # Check if it's an exact app match first
         if target in self.apps:
             return {"action": "open_app", "target": target, "appid": self.apps[target]}
+        
+        # Try fuzzy matching for apps
+        try:
+            from app_discovery import get_app_path
+            app_path = get_app_path(target, self.apps)
+            if app_path:
+                return {"action": "open_app", "target": target, "appid": app_path}
+        except Exception:
+            pass
+        
+        # Check if it's a site
         if target in self.sites:
             return {"action": "open_url", "target": target, "url": self.sites[target]}
+        
+        # Check if it looks like a URL
         if looks_like_url(target):
             url = target if target.startswith("http") else f"https://{target}"
             return {"action": "open_url", "target": target, "url": url}
-        # unknown target: open a search and be transparent about it
+        
+        # Unknown target: open a search and be transparent about it
         return {"action": "search", "target": target, "query": target, "fallback": True}
 
     def answer(self, prompt: str) -> str:
@@ -609,7 +634,13 @@ class TaskExecutor:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    print("VoiceOS Task Actions — self-test (offline)")
+    import sys
+    # Force UTF-8 on Windows
+    if sys.platform == "win32":
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    
+    print("VoiceOS Task Actions -- self-test (offline)")
 
     sites, apps = load_aliases()
     assert "linkedin" in sites and "notepad" in apps
@@ -640,7 +671,7 @@ if __name__ == "__main__":
     assert intent["url"] == "https://maps.google.com", intent
     assert parser.answer("no ai backend question").startswith("No AI backend")
     assert "recognized" in parser.answer("open linkedin").lower()
-    print("✓ base grammar OK")
+    print("[OK] base grammar OK")
 
     # --- autonomous play / site search ------------------------------------
     intent = parser.parse("open youtube and play chess videos")
@@ -653,7 +684,7 @@ if __name__ == "__main__":
     assert intent["action"] == "site_search" and intent["site"] == "amazon", intent
     intent = parser.parse("open maps and search coffee shops")
     assert intent["action"] == "site_search" and intent["site"] == "maps", intent
-    print("✓ play/search compound intents OK")
+    print("[OK] play/search compound intents OK")
 
     # --- email with contact lookup + human-send gate -----------------------
     parser.contacts = {"bob": "bob@example.com", "mom": "mom@example.com"}
@@ -665,7 +696,7 @@ if __name__ == "__main__":
     parser.contacts = {}
     intent = parser.parse("send email to bob")            # unknown contact
     assert intent["action"] == "email" and intent["address"] == "", intent
-    print("✓ email intents + contact lookup OK")
+    print("[OK] email intents + contact lookup OK")
 
     # --- Claude Code delegation grammar -------------------------------------
     intent = parser.parse("create a game via claude code")
@@ -674,7 +705,7 @@ if __name__ == "__main__":
     assert intent["action"] == "claude_create" and intent["request"] == "a snake game", intent
     intent = parser.parse("write a poem about the sea")    # no artifact hint
     assert intent is None, intent
-    print("✓ Claude delegation grammar OK")
+    print("[OK] Claude delegation grammar OK")
 
     # --- executor: dry run leaves no side effects ---------------------------
     ex = TaskExecutor(dry_run=True)
@@ -705,7 +736,7 @@ if __name__ == "__main__":
     assert res["ok"] and "mailto:alice@example.com" in res["detail"], res
     res = ex.execute({"action": "claude_create", "request": "a game"})
     assert res["ok"] and "would ask Claude Code" in res["detail"], res
-    print("✓ TaskExecutor dry-run actions OK (site_search/youtube/email/claude)")
+    print("[OK] TaskExecutor dry-run actions OK (site_search/youtube/email/claude)")
 
     # --- executor: recording into the real workflow/state pipeline ----------
     wf = _make_workflow()
@@ -715,13 +746,13 @@ if __name__ == "__main__":
     ex2.execute({"action": "answer", "text": "hello"})
     assert wf.state.status_counts.get("pass", 0) >= 2, wf.state.status_counts
     assert len(wf.tasks) >= 2
-    print("✓ action recording through core/state OK")
+    print("[OK] action recording through core/state OK")
 
     # --- executor: a LIVE verified shell command (echo never fails) ---------
     ex3 = TaskExecutor(workflow=_make_workflow(), dry_run=False)
     res = ex3.execute({"action": "run_command", "command": "echo voiceos_live_marker"})
     assert res["ok"] and res["verification"] == "PASS", res
     assert "voiceos_live_marker" in res["detail"], res
-    print("✓ live verified command OK")
+    print("[OK] live verified command OK")
 
-    print("✓ task_actions self-test OK")
+    print("[OK] task_actions self-test OK")

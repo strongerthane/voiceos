@@ -179,7 +179,13 @@ def _cmd_loop(ast_: VoiceAssistant) -> int:
 # ---------------------------------------------------------------------------
 
 def _selftest() -> int:
-    print("VoiceOS Assistant — self-test (offline)")
+    import sys
+    # Force UTF-8 on Windows
+    if sys.platform == "win32":
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    
+    print("VoiceOS Assistant -- self-test (offline)")
 
     a = VoiceAssistant(tts=False)                  # never speak during tests
     a.executor.dry_run = True                     # never open anything real
@@ -192,36 +198,36 @@ def _selftest() -> int:
     res = a.handle("open the linkedin")
     assert res["path"] == "deterministic" and res["ok"], res
     assert "linkedin.com" in res["detail"], res
-    print("✓ 'open the linkedin' -> deterministic open OK")
+    print("[OK] 'open the linkedin' -> deterministic open OK")
 
     # compound autonomous action
     res = a.handle("open youtube and play chess videos")
     assert res["path"] == "deterministic" and res["ok"], res
     assert "[dry-run]" in res["detail"] and "YouTube" in res["detail"], res
-    print("✓ 'open youtube and play chess videos' -> youtube_play intent OK")
+    print("[OK] 'open youtube and play chess videos' -> youtube_play intent OK")
 
     # email grammar through the full pipeline (unknown contact -> honest ask)
     res = a.handle("send email to bob about lunch")
     assert res["path"] == "deterministic" and res["ok"] is False, res
     assert "voiceos_contacts.json" in res["detail"], res
-    print("✓ email without a known contact -> asks for the address OK")
+    print("[OK] email without a known contact -> asks for the address OK")
 
     # Claude delegation grammar (dry run — never invokes the CLI here)
     res = a.handle("create a game via claude code")
     assert res["path"] == "deterministic" and res["ok"], res
     assert "would ask Claude Code" in res["detail"], res
-    print("✓ 'create a game via claude code' -> claude_create intent OK")
+    print("[OK] 'create a game via claude code' -> claude_create intent OK")
 
     # non-commands fall to the AI tiers; with none reachable, degrade cleanly
     res = a.handle("what is the capital of france")
     assert res["path"] == "ai (offline)", res
     assert res["ok"] and "No AI backend" in res["detail"], res
-    print("✓ knowledge question without backends -> clean offline answer OK")
+    print("[OK] knowledge question without backends -> clean offline answer OK")
 
     # unknown command target -> transparent search fallback
     res = a.handle("open zzz-bogus-thing")
     assert res["path"] == "deterministic" and "voiceos_aliases.json" in res["detail"], res
-    print("✓ unknown target -> search fallback with alias hint OK")
+    print("[OK] unknown target -> search fallback with alias hint OK")
 
     # actions land in the verification history the UI reads
     a.handle("open youtube")
@@ -229,9 +235,9 @@ def _selftest() -> int:
     assert wf is not None and wf.state.status_counts.get("pass", 0) >= 5, \
         (wf.state.status_counts if wf else "no workflow")
     assert len(wf.tasks) >= 6
-    print("✓ actions recorded in core/state verification history OK")
+    print("[OK] actions recorded in core/state verification history OK")
 
-    print("✓ assistant self-test OK")
+    print("[OK] assistant self-test OK")
     return 0
 
 

@@ -49,7 +49,7 @@ VoiceOS is a compact desktop voice assistant with a top-of-screen liquid-glass i
 
    ```bat
    python -m pip install --upgrade pip
-   python -m pip install sounddevice numpy SpeechRecognition requests
+   python -m pip install sounddevice numpy SpeechRecognition requests Pillow
    ```
 
    PyAudio and Windows Voice Access are not required.

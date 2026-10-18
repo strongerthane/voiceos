@@ -36,6 +36,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from user_paths import config_file
 from typing import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
@@ -62,7 +63,7 @@ KNOWN_KEY_ENVARS = [
 
 
 def _config_path() -> str:
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_config.json")
+    return str(config_file("ai_config.json"))
 
 
 def load_ai_config() -> Dict[str, Any]:
@@ -81,6 +82,15 @@ def load_ai_config() -> Dict[str, Any]:
         env = os.environ.get(f"VOICEOS_{key.upper()}")
         if env:
             cfg[key] = env
+    # Retain the documented short spelling as well as API_BASE_URL.
+    if os.environ.get("VOICEOS_API_BASE"):
+        cfg["api_base_url"] = os.environ["VOICEOS_API_BASE"]
+    if not cfg.get("api_key"):
+        try:
+            from secure_store import load_api_key
+            cfg["api_key"] = load_api_key()
+        except OSError:
+            print("Saved provider key could not be unlocked. Re-enter it in Settings.")
     return cfg
 
 
@@ -224,9 +234,17 @@ class HybridRouter:
     def route(self, prompt: str) -> str:
         """Return 'local' | 'api' | 'offline'."""
         difficulty = classify_difficulty(prompt)
-        local_up = self.local.is_available()
-        api_set = self.remote.is_configured
-        if difficulty == "easy":
+        cfg = getattr(self.local, "cfg", {})
+        mode = cfg.get("ai_mode", "automatic") if isinstance(cfg, dict) else "automatic"
+        local_up = self.local.is_available() if mode not in {"commands", "cloud"} else False
+        api_set = self.remote.is_configured if mode not in {"commands", "local"} else False
+        if mode == "commands":
+            plan = "offline"
+        elif mode == "local":
+            plan = "local" if local_up else "offline"
+        elif mode == "cloud":
+            plan = "api" if api_set else "offline"
+        elif difficulty == "easy":
             plan = "local" if local_up else "offline"
         else:
             plan = "api" if api_set else ("local" if local_up else "offline")
@@ -234,6 +252,7 @@ class HybridRouter:
             "difficulty": difficulty,
             "ollama_up": local_up,
             "api_configured": api_set,
+            "mode": mode,
             "plan": plan,
         }
         return plan
@@ -261,7 +280,7 @@ class HybridRouter:
                 return result(self.remote.generate(prompt, system), "api", self.remote.model)
             except Exception as e:                      # network/model/quota problems
                 print(f"⚠️  API tier failed ({e}) — falling back to local")
-                plan = "local"
+                plan = "local" if self.decision().get("mode") != "cloud" else "offline"
 
         if plan == "local":
             try:

@@ -1,0 +1,69 @@
+VoiceOS 0.1.0 beta 1 - Windows x64
+
+GET STARTED
+1. Extract the entire ZIP. Do not run the app from inside the ZIP.
+2. Double-click VoiceOS.exe. Keep the _internal folder beside it.
+3. Choose a microphone, optionally test it, then click Start VoiceOS.
+4. The small black notch is at the TOP CENTER of your screen. Click it to speak.
+   Try: "open YouTube", "open Notepad", or "search for weather in London".
+
+No Python, PyAudio, Windows Voice Access, account or API key is required to try
+supported commands. The app does not install a service or start with Windows.
+
+CONTROLS
+Click the notch: listen. Click it before using these keyboard shortcuts:
+Ctrl+T: type a command.
+Ctrl+comma: change microphone or AI settings (or double-click Settings.cmd).
+Esc: quit. Right-drag: temporarily move the notch.
+Email drafts: review the recipient and subject, then approve or cancel.
+The draft opens in your mail client; you review and press Send there.
+
+OPTIONAL AI ANSWERS
+Ollama: install Ollama separately, run "ollama pull llama3.2:3b", and keep Ollama
+running. Select that installed model in Settings. Models are not bundled.
+Cloud: enter your own OpenAI-compatible HTTPS URL, model and API key in Settings.
+The key is protected with Windows DPAPI for your Windows account. Provider fees
+and internet access are your responsibility. Environment settings still apply.
+
+MICROPHONE & PRIVACY
+Windows Settings > Privacy & security > Microphone: enable microphone access
+and "Let desktop apps access your microphone". Windows 10 uses Privacy instead.
+Voice recognition sends captured speech to Google's online speech service.
+Selecting Ollama makes AI answers local; speech recognition still uses Google.
+The microphone test records locally for two seconds, without uploading or saving.
+The UI transcript stays in memory and is cleared when VoiceOS closes.
+Typed requests may be sent to your configured AI provider when no built-in
+command matches. There is no bundled account, key or developer contact list.
+
+PERSONAL FILES
+Settings: %LOCALAPPDATA%\VoiceOS\ai_config.json
+Encrypted cloud key: %LOCALAPPDATA%\VoiceOS\provider-key.bin
+Named email recipients: %LOCALAPPDATA%\VoiceOS\voiceos_contacts.json
+Example contacts file: {"alex": "alex@example.com"}
+Custom apps/sites: %LOCALAPPDATA%\VoiceOS\voiceos_aliases.json
+Created notes: your Documents\VoiceOS folder.
+Claude-delegated files: %LOCALAPPDATA%\VoiceOS\Actions (requires Claude CLI).
+To remove: delete the extracted app folder. Your settings and created files stay
+on your PC; delete the named VoiceOS data folders separately if no longer needed.
+
+BETA LIMITATIONS
+Windows 10/11 x64 only. This is an unsigned beta; Windows may show a reputation
+warning. Verify the download source and published SHA-256 checksum; the build
+does not disable Windows protections. Some apps and Windows displays may behave
+differently. Administrator windows cannot be controlled from a normal app.
+Ollama models, cloud credentials, email clients, Office, and Claude CLI are not
+bundled. This app supports specific commands, not arbitrary computer tasks.
+No wake-word or system-wide shortcut is included. Click the notch to focus it.
+Office/workflow/cloud-upload helper modules are experimental developer APIs,
+not a promise that every feature is accessible through the voice interface.
+
+TROUBLESHOOTING
+Run Check microphone.cmd to check the bundled libraries and record two seconds.
+It creates %LOCALAPPDATA%\VoiceOS\diagnostics.json (no audio or secret values).
+If the app fails to launch, see startup-error.txt in that same folder.
+Report issues with Windows version, command, expected result and actual result:
+https://github.com/strongerthane/voiceos/issues
+Never include API keys or private contact/configuration files in an issue.
+
+This independent community project is not affiliated with voiceos.com.
+Third-party components retain their licenses; see THIRD_PARTY_NOTICES.txt.

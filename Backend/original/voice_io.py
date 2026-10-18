@@ -50,19 +50,34 @@ def record_audio_data(
     import sounddevice as sd
 
     frame_count = max(1, int(duration * sample_rate))
+    chunks = queue.Queue()
 
     def callback(indata, frames, timing, status):
         if status:
             print(f"microphone status: {status}")
+        chunks.put(indata.copy())
         level = float(np.sqrt(np.mean(np.square(indata.astype(np.float32)))))
         if on_level:
             on_level(min(1.0, level / 4_000.0))
 
-    recording = sd.rec(frame_count, samplerate=sample_rate, channels=CHANNELS,
-                       dtype="int16", device=device, callback=callback)
-    sd.wait()
-    if on_level:
-        on_level(0.0)
+    # sd.rec owns its own callback; passing callback= to it is invalid. Use the
+    # same explicit stream API as live listening and collect exactly N frames.
+    recording = np.empty((frame_count, CHANNELS), dtype=np.int16)
+    captured = 0
+    try:
+        with sd.InputStream(samplerate=sample_rate, channels=CHANNELS,
+                            dtype="int16", device=device, callback=callback):
+            while captured < frame_count:
+                try:
+                    chunk = chunks.get(timeout=3.0)
+                except queue.Empty as exc:
+                    raise TimeoutError("microphone did not deliver audio") from exc
+                count = min(len(chunk), frame_count - captured)
+                recording[captured:captured + count] = chunk[:count]
+                captured += count
+    finally:
+        if on_level:
+            on_level(0.0)
     return to_audio_data(recording.tobytes(), sample_rate)
 
 
@@ -158,6 +173,9 @@ def listen(
     on_level: Optional[Callable[[float], None]] = None,
 ) -> Optional[str]:
     """Capture one utterance with sounddevice and return its transcription."""
+    if device is None:
+        from ai_router import load_ai_config
+        device = load_ai_config().get("input_device")
     try:
         import sounddevice  # noqa: F401 - gives a clear missing-package error
         import speech_recognition  # noqa: F401

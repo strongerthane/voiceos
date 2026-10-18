@@ -35,3 +35,19 @@ Desktop.ini
 *.csv
 *.sqlite
 *.db
+
+# Local user data and release build outputs
+ai_config.json
+voiceos_contacts.json
+voiceos_aliases.json
+provider-key.bin
+setup-complete
+startup-error.txt
+diagnostics.json
+VoiceOS_Actions/
+.beta-build-env/
+.beta-build-work/
+build/
+dist/
+artifacts/
+*.spec

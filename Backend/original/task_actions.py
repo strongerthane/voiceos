@@ -41,6 +41,7 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
+from user_paths import config_file, actions_dir
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import quote_plus
 
@@ -132,11 +133,11 @@ GOODBYE_PHRASES = ("goodbye", "good bye", "bye", "stop listening",
 
 
 def _alias_path() -> str:
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "voiceos_aliases.json")
+    return str(config_file("voiceos_aliases.json"))
 
 
 def _contacts_path() -> str:
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "voiceos_contacts.json")
+    return str(config_file("voiceos_contacts.json"))
 
 
 def load_aliases():
@@ -383,8 +384,7 @@ def _make_workflow():
 
 def _actions_dir() -> str:
     """Dedicated folder for Claude-delegated artifacts: <repo>/VoiceOS_Actions."""
-    return os.path.abspath(os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "..", "VoiceOS_Actions"))
+    return str(actions_dir())
 
 
 class TaskExecutor:

@@ -1,5 +1,25 @@
 # VoiceOS
 
+## Windows beta
+
+The portable Windows x64 beta bundles Python and the microphone dependencies.
+Download the ZIP from [Releases](https://github.com/strongerthane/voiceos/releases),
+extract the entire folder and open `VoiceOS.exe`. The first launch lets you choose
+and test a microphone. Basic commands need no account or AI key.
+
+Click the top-center notch to speak. Try “open YouTube” or “open Notepad”. With the
+notch focused, use **Ctrl+T** to type, **Ctrl+,** for Settings, and **Esc** to quit.
+AI answers can use a separately installed Ollama model or your own cloud provider.
+
+Speech recognition uses Google's online service, including when Ollama handles
+AI answers. The beta is unsigned and has not yet been validated on a second clean
+Windows machine. See [beta instructions](packaging/START_HERE.txt) for requirements,
+privacy details, limitations and troubleshooting. This independent community
+project is not affiliated with voiceos.com.
+
+Developers can build the package with [these instructions](packaging/README.md).
+The source setup below remains available.
+
 VoiceOS is a compact desktop voice assistant with a top-of-screen liquid-glass interface, reactive listening waveform, sounddevice microphone capture, NVIDIA GLM/OpenAI-compatible AI routing, and text-to-speech responses.
 
 ## Features
@@ -49,7 +69,7 @@ VoiceOS is a compact desktop voice assistant with a top-of-screen liquid-glass i
 
    ```bat
    python -m pip install --upgrade pip
-   python -m pip install sounddevice numpy SpeechRecognition requests
+   python -m pip install sounddevice numpy SpeechRecognition requests Pillow
    ```
 
    PyAudio and Windows Voice Access are not required.

@@ -62,7 +62,7 @@ class VoiceAssistant:
                             "It may take a minute; I'll tell you when it's done.")
             result = self.executor.execute(intent)
             result["path"] = "deterministic"
-            self._speak(result.get("detail", ""))
+            self._speak(self._spoken_response(result))
             return result
 
         # 2) otherwise — hybrid AI tiers
@@ -75,7 +75,7 @@ class VoiceAssistant:
             result = self.executor.execute(follow)
             result["path"] = f"ai-suggested ({answer.get('source')})"
             result["answer"] = model_text
-            self._speak(result.get("detail", ""))
+            self._speak(self._spoken_response(result))
             return result
 
         result = self.executor.execute({"action": "answer", "text": model_text})
@@ -94,6 +94,29 @@ class VoiceAssistant:
             say(str(text)[:400])
         except Exception as e:
             print(f"🔊 TTS unavailable ({e})")
+
+    @staticmethod
+    def _spoken_response(result: Dict[str, Any]) -> str:
+        """Keep spoken action feedback natural and free of implementation detail."""
+        intent = result.get("intent") or {}
+        action = result.get("action") or intent.get("action")
+        target = str(intent.get("target") or "").strip()
+        query = str(intent.get("query") or "").strip()
+        if not result.get("ok"):
+            return "I couldn't complete that. Please try again."
+        if action in {"open_url", "open_app"}:
+            return f"Opening {target or 'that'} now."
+        if action == "youtube_play":
+            return f"Opening YouTube for {query or 'that'} now."
+        if action in {"search", "site_search"}:
+            return f"Searching for {query or target or 'that'} now."
+        if action == "email":
+            return f"Opening your email draft to {target or 'your recipient'} now."
+        if action == "claude_create":
+            return "Your project is ready to review."
+        if action == "answer":
+            return str(result.get("detail", ""))[:400]
+        return "Done."
 
 
 # ---------------------------------------------------------------------------

@@ -7,32 +7,36 @@ expands only while VoiceOS is listening or working.
 
 from __future__ import annotations
 
-import math
 import re
 import threading
 import time
 from typing import Any, Dict, Optional
 import tkinter as tk
+from PIL import ImageTk
+from aperture_renderer import ApertureRenderer
 
 
 class VoiceOSUI:
     """A compact floating VoiceOS interface with listening/task states."""
 
-    IDLE_SIZE = (390, 70)
-    ACTIVE_SIZE = (520, 220)
-    CONFIRM_SIZE = (620, 360)
-    TOP_MARGIN = 18
+    IDLE_SIZE = (236, 30)
+    ACTIVE_SIZE = (340, 42)
+    CONFIRM_SIZE = (380, 262)
+    RESULT_SIZE = (380, 112)
+    TASK_SIZE = (380, 92)
+    TEXT_SIZE = (440, 128)
+    TOP_MARGIN = 0
     KEY_COLOR = "#000001"
-    PANEL = "#10131b"
-    PANEL_LIGHT = "#171b25"
-    HEADER = "#191e2a"
-    BORDER = "#394153"
-    TEXT = "#f4f6fb"
-    MUTED = "#c3c9d4"
-    BLUE = "#1a73e8"
-    PURPLE = "#8ab4f8"
-    GREEN = "#81c995"
-    RED = "#f28b82"
+    PANEL = "#08090d"
+    PANEL_LIGHT = "#11131b"
+    HEADER = "#181b26"
+    BORDER = "#2a3040"
+    TEXT = "#f7f8fc"
+    MUTED = "#a8afbd"
+    BLUE = "#756bff"
+    PURPLE = "#bd62ff"
+    GREEN = "#66e6c4"
+    RED = "#ff8a99"
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -51,10 +55,22 @@ class VoiceOSUI:
         self._status_message = "Ready when you are"
         self._status_kind = "info"
         self._pending_command: Optional[str] = None
+        self._active_request = ""
         self._drag_origin: Optional[tuple[int, int]] = None
         self._collapse_job = None
         self._resize_job = None
+        self._text_mode = False
+        self._renderer = ApertureRenderer()
+        self._scene = None
+        self._frame_photo = None
+        self._display_level = 0.0
+        self._last_tick = time.perf_counter()
+        self._hover_action = None
+        self._focus_action = None
+        self._native = None
 
+        from native_glass import enable_dpi_awareness
+        enable_dpi_awareness()
         self.root = tk.Tk()
         self.root.title(config.get("window_title", "VoiceOS"))
         self.root.configure(bg=self.KEY_COLOR)
@@ -64,13 +80,23 @@ class VoiceOSUI:
             self.root.wm_attributes("-transparentcolor", self.KEY_COLOR)
         except tk.TclError:
             pass
+        try:
+            self.root.wm_attributes("-alpha", 1.0)
+        except tk.TclError:
+            pass
         self.root.bind("<Escape>", lambda _event: self.root.destroy())
-        self.root.bind("<Return>", lambda _event: self._on_run_command())
+        self.root.bind("<Return>", self._activate_action)
+        self.root.bind("<Tab>", self._tab_action)
+        self.root.bind("<space>", lambda event: self._activate_action(event)
+                       if self.ui_state == "confirm" else None)
+        self.root.bind("<Control-t>", self._show_text_command)
 
         self.canvas = tk.Canvas(self.root, bg=self.KEY_COLOR, highlightthickness=0,
                                 bd=0, takefocus=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
         self.canvas.bind("<Button-1>", self._on_canvas_click)
+        self.canvas.bind("<Motion>", self._on_pointer)
+        self.canvas.bind("<Leave>", lambda _event: setattr(self, "_hover_action", None))
         self.canvas.bind("<ButtonPress-3>", self._start_drag)
         self.canvas.bind("<B3-Motion>", self._drag)
 
@@ -81,26 +107,33 @@ class VoiceOSUI:
                                       insertbackground=self.TEXT,
                                       font=("Segoe UI", 10))
         self.run_button = tk.Button(self.root, text="Run", command=self._on_run_command,
-                                    bd=0, bg=self.BLUE, fg="#ffffff",
-                                    activebackground="#4285f4", font=("Segoe UI", 9, "bold"),
+                                    bd=0, bg="#303c56", fg="#ffffff",
+                                    activebackground="#465676", font=("Segoe UI", 9, "bold"),
                                     cursor="hand2", relief=tk.FLAT)
         self.mic_button = tk.Button(self.root, text="Mic", command=self._on_mic_command,
                                     bd=0, bg=self.HEADER, fg=self.TEXT,
                                     activebackground=self.BORDER, font=("Segoe UI", 9),
                                     cursor="hand2", relief=tk.FLAT)
-        self._entry_window = self.canvas.create_window(206, 191, window=self.command_entry,
-                                                        width=278, height=34,
+        self._entry_window = self.canvas.create_window(210, 128, window=self.command_entry,
+                                                        width=168, height=28,
                                                         state="hidden")
-        self._run_window = self.canvas.create_window(378, 191, window=self.run_button,
-                                                      width=58, height=34, state="hidden")
-        self._mic_window = self.canvas.create_window(447, 191, window=self.mic_button,
-                                                      width=64, height=34, state="hidden")
+        self._run_window = self.canvas.create_window(376, 128, window=self.run_button,
+                                                      width=44, height=28, state="hidden")
+        self._mic_window = self.canvas.create_window(447, 128, window=self.mic_button,
+                                                      width=44, height=28, state="hidden")
 
         # Compatibility status objects used by current feedback integrations.
         self.status_card = tk.Frame(self.root, bg=self.PANEL)
         self.status_text = tk.Label(self.status_card, text="", bg=self.PANEL, fg=self.TEXT)
         self.transcript = tk.Text(self.root, height=1, state=tk.DISABLED)
         self._position_window(*self.IDLE_SIZE)
+        self.root.update_idletasks()
+        try:
+            from native_glass import LayeredGlass
+            self._native = LayeredGlass(self.root)
+        except (OSError, AttributeError):
+            pass
+        self.root.bind("<Destroy>", self._release_native, add="+")
         self._draw()
         self.root.after(33, self._tick)
 
@@ -123,7 +156,7 @@ class VoiceOSUI:
         screen_height = self.root.winfo_screenheight()
 
         def step(frame: int):
-            progress = frame / 8
+            progress = frame / 12
             eased = 1 - (1 - progress) ** 3
             current_width = round(start_width + (width - start_width) * eased)
             current_height = round(start_height + (height - start_height) * eased)
@@ -131,271 +164,93 @@ class VoiceOSUI:
             y = self.TOP_MARGIN
             self.root.geometry(f"{current_width}x{current_height}+{x}+{y}")
             self.canvas.config(width=current_width, height=current_height)
-            if frame < 8:
-                self._resize_job = self.root.after(18, lambda: step(frame + 1))
+            self._draw()
+            if frame < 12:
+                self._resize_job = self.root.after(16, lambda: step(frame + 1))
             else:
                 self._resize_job = None
 
         step(1)
 
-    @staticmethod
-    def _rounded(canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int,
-                 radius: int, **kwargs):
-        points = [x1 + radius, y1, x2 - radius, y1, x2, y1,
-                  x2, y1 + radius, x2, y2 - radius, x2, y2,
-                  x2 - radius, y2, x1 + radius, y2, x1, y2,
-                  x1, y2 - radius, x1, y1 + radius, x1, y1]
-        return canvas.create_polygon(points, smooth=True, **kwargs)
-
     def _draw(self):
-        self.canvas.delete("ui")
-        width, height = ((self.CONFIRM_SIZE if self.ui_state == "confirm" else self.ACTIVE_SIZE)
-                         if self.ui_state != "idle" else self.IDLE_SIZE)
-        self._draw_liquid_glass(width, height)
-        if self.ui_state == "idle":
-            self._draw_idle(width)
-        else:
-            self._draw_active(width, height)
+        width = max(1, self.root.winfo_width())
+        height = max(1, self.root.winfo_height())
+        render_width, render_height = self._target_size()
+        frame = self._renderer.render(
+            render_width, render_height, self.ui_state, self._phase, self._display_level,
+            recipient=self._extract_recipient(self._pending_command or ""),
+            subject=self._extract_subject(self._pending_command or ""),
+            body=self._extract_body(self._pending_command or ""),
+            request=self._active_request,
+            message=self._status_message, hover=self._hover_action,
+            focus=self._focus_action, text_mode=self._text_mode,
+        )
+        # Cache the final material once per state, rather than rebuilding its
+        # high-resolution geometry at every intermediate animation size.
+        if width != render_width:
+            frame = frame.resize((width, render_height))
+        if height != render_height:
+            frame = frame.crop((0, 0, width, height))
+        visible = self._text_mode and self.ui_state != "confirm"
+        native_drawn = False
+        if self._native and not visible:
+            try:
+                self._native.present(frame)
+                native_drawn = True
+            except OSError as exc:
+                print(f"Native glass fallback: {exc}")
+                self._native.disable()
+                self._native.close()
+                self._native = None
+                self.root.wm_attributes("-transparentcolor", self.KEY_COLOR)
+        if not native_drawn:
+            if self._native and self._native.active:
+                self._native.disable()
+                self.root.wm_attributes("-transparentcolor", self.KEY_COLOR)
+            self._frame_photo = ImageTk.PhotoImage(frame)
+            if self._scene is None:
+                self._scene = self.canvas.create_image(0, 0, image=self._frame_photo, anchor="nw")
+                self.canvas.tag_lower(self._scene)
+            else:
+                self.canvas.itemconfigure(self._scene, image=self._frame_photo)
+        for item in (self._entry_window, self._run_window, self._mic_window):
+            self.canvas.itemconfigure(item, state="normal" if visible else "hidden")
+        if visible:
+            self.canvas.coords(self._entry_window, width / 2 - 54, 91)
+            self.canvas.coords(self._run_window, width / 2 + 60, 91)
+            self.canvas.coords(self._mic_window, width / 2 + 115, 91)
 
-    def _draw_liquid_glass(self, width: int, height: int):
-        """Layer a subtle glass highlight over a dark floating island."""
-        self._rounded(self.canvas, 7, 9, width - 1, height - 1, 25,
-                      fill="#080a10", outline="", tags="ui")
-        self._rounded(self.canvas, 4, 4, width - 5, height - 7, 24,
-                      fill=self.PANEL, outline="#343a49", width=1, tags="ui")
-        self._rounded(self.canvas, 7, 6, width - 8, height - 10, 22,
-                      fill=self.PANEL, outline="#1d2330", width=1, tags="ui")
+    def _release_native(self, event):
+        if event.widget is self.root and self._native:
+            self._native.close()
+            self._native = None
 
-        # Cool reflected light at the top and edge highlights create glass
-        # depth without the old gray title-bar/beveled-button look.
-        self._rounded(self.canvas, 10, 7, width - 11, min(39, height - 12), 17,
-                      fill=self.HEADER, outline="", tags="ui")
-        self.canvas.create_rectangle(11, min(22, height - 16),
-                                     width - 12, min(37, height - 12),
-                                     fill=self.HEADER, outline="", tags="ui")
-        self.canvas.create_line(28, 8, width - 44, 8,
-                                fill="#505b78", width=1, tags="ui")
-        self.canvas.create_line(22, height - 8, width - 22, height - 8,
-                                fill="#26334c", width=1, tags="ui")
-        self._draw_accent_edge(width, height)
+    def _on_pointer(self, event):
+        self._hover_action = self._action_at(event.x, event.y)
+        self.canvas.configure(cursor="hand2" if self._hover_action or self.ui_state == "idle" else "")
 
-    def _draw_accent_edge(self, width: int, height: int):
-        colors = ("#208cff", "#41c8ff", "#756bff", "#bd58ff", "#ed62d5")
-        left, right = 28, width - 28
-        segment = (right - left) / len(colors)
-        for index, color in enumerate(colors):
-            x1 = round(left + index * segment)
-            x2 = round(left + (index + 1) * segment)
-            self.canvas.create_line(x1, height - 8, x2, height - 8,
-                                    fill=self._dim_color(color), width=5,
-                                    capstyle=tk.ROUND, tags="ui")
-            self.canvas.create_line(x1, height - 8, x2, height - 8,
-                                    fill=color, width=2,
-                                    capstyle=tk.ROUND, tags="ui")
-
-    def _draw_idle(self, width: int):
-        glow = self.BLUE if self._status_kind != "error" else self.RED
-        self.canvas.create_oval(17, 19, 49, 51, fill="#172b49", outline="", tags="ui")
-        self.canvas.create_oval(20, 22, 46, 48, fill=glow, outline="", tags="ui")
-        self.canvas.create_oval(28, 30, 38, 40, fill="#f8fbff", outline="", tags="ui")
-        self.canvas.create_text(62, 27, text="VoiceOS", anchor="w", fill="#f7f8fc",
-                                font=("Segoe UI", 12, "bold"), tags="ui")
-        self.canvas.create_text(62, 46, text=self._status_message, anchor="w",
-                                fill="#c7cddd", font=("Segoe UI", 10), tags="ui")
-        self._draw_siri_wave(width - 48, 35, 27, mini=True)
-
-    def _draw_active(self, width: int, height: int):
+    def _action_at(self, x, y):
         if self.ui_state == "confirm":
-            self._draw_confirmation(width, height)
-            return
+            for action, (left, top, right, bottom) in self._renderer.controls(self.root.winfo_width()).items():
+                if left <= x <= right and top <= y <= bottom:
+                    return action
+        return None
 
-        color = self.GREEN if self.ui_state == "complete" else self.RED if self.ui_state == "error" else self.BLUE
-        label = {"listening": "Listening", "thinking": "Thinking",
-                 "executing": "Working", "complete": "Completed",
-                 "error": "Couldn’t complete", "confirm": "Confirm action"}.get(self.ui_state, "VoiceOS")
-        self.canvas.create_oval(22, 14, 40, 32, fill=color, outline="", tags="ui")
-        self.canvas.create_text(50, 22, text=label, anchor="w", fill=self.TEXT,
-                                font=("Segoe UI", 12, "bold"), tags="ui")
-        self.canvas.create_text(50, 42, text=self._status_message, anchor="w", fill=self.MUTED,
-                                width=420, font=("Segoe UI", 10), tags="ui")
-        self.canvas.create_text(width - 27, 27, text="×", fill="#aeb7c9",
-                                font=("Segoe UI", 15), tags="ui")
-        if self.ui_state in {"listening", "thinking", "executing"}:
-            self._draw_waveform(color, width)
-        else:
-            self._draw_result(color, width)
-        self.canvas.itemconfigure(self._entry_window, state="normal")
-        self.canvas.itemconfigure(self._run_window, state="normal")
-        self.canvas.itemconfigure(self._mic_window, state="normal")
+    def _tab_action(self, _event=None):
+        if self.ui_state == "confirm":
+            self._focus_action = "cancel" if self._focus_action == "approve" else "approve"
+            self._draw()
+            return "break"
 
-    def _draw_waveform(self, color: str, width: int):
-        self._draw_siri_wave(width // 2, 112, width - 110)
-        detail = "Speak naturally — I’ll stop after a short pause." if self.ui_state == "listening" else "I’m processing your request."
-        self.canvas.create_text(width // 2, 163, text=detail, fill="#d2d7e0",
-                                font=("Segoe UI", 10), tags="ui")
-
-    def _draw_siri_wave(self, center_x: int, center_y: int, span: int, mini: bool = False):
-        """Draw a luminous, fluid waveform with a moving spectral gradient."""
-        count = 19 if mini else 55
-        amplitude_scale = 4 if mini else 24
-        points = []
-        for index in range(count):
-            position = index / (count - 1)
-            distance = abs(position * 2 - 1)
-            envelope = 0.1 + 0.9 * (1 - distance) ** 1.2
-            wave = (0.62 * math.sin(position * 15 - self._phase * 1.7)
-                    + 0.24 * math.sin(position * 25 + self._phase * 1.1)
-                    + 0.14 * math.sin(position * 37 - self._phase * 0.8))
-            amplitude = wave * envelope * amplitude_scale
-            x = center_x - span / 2 + position * span
-            y = center_y - amplitude
-            points.append((x, y))
-
-        coordinates = [coordinate for point in points for coordinate in point]
-        self.canvas.create_line(*coordinates, fill="#38275e",
-                                width=9 if mini else 19, capstyle=tk.ROUND,
-                                joinstyle=tk.ROUND, smooth=True, splinesteps=16,
-                                tags="ui")
-        self.canvas.create_line(*coordinates, fill="#2769b8",
-                                width=5 if mini else 9, capstyle=tk.ROUND,
-                                joinstyle=tk.ROUND, smooth=True, splinesteps=16,
-                                tags="ui")
-
-        chunk_size = 4
-        for start in range(0, len(points) - 1, chunk_size - 1):
-            segment = points[start:min(start + chunk_size, len(points))]
-            segment_coordinates = [coordinate for point in segment for coordinate in point]
-            position = (start + (len(segment) - 1) / 2) / (len(points) - 1)
-            color = self._spectrum_color(position)
-            self.canvas.create_line(*segment_coordinates,
-                                    fill=self._dim_color(color),
-                                    width=8 if mini else 14,
-                                    capstyle=tk.ROUND, joinstyle=tk.ROUND,
-                                    smooth=True, splinesteps=12, tags="ui")
-            self.canvas.create_line(*segment_coordinates, fill=color,
-                                    width=2 if mini else 4,
-                                    capstyle=tk.ROUND, joinstyle=tk.ROUND,
-                                    smooth=True, splinesteps=12, tags="ui")
-        if not mini:
-            self.canvas.create_line(*coordinates, fill="#bceaff", width=1,
-                                    capstyle=tk.ROUND, joinstyle=tk.ROUND,
-                                    smooth=True, splinesteps=16, tags="ui")
-
-    @staticmethod
-    def _dim_color(color: str) -> str:
-        rgb = tuple(int(color[index:index + 2], 16) for index in (1, 3, 5))
-        return "#{:02x}{:02x}{:02x}".format(*(channel // 3 for channel in rgb))
-
-    def _spectrum_color(self, position: float) -> str:
-        """Interpolate a moving blue-cyan-violet-pink listening spectrum."""
-        colors = ("#28a5ff", "#36e0ee", "#617dff", "#a45cff", "#f45bd7", "#28a5ff")
-        point = (position * (len(colors) - 1) + self._phase * 0.045) % (len(colors) - 1)
-        index = int(point)
-        blend = point - index
-        start = colors[index]
-        end = colors[min(index + 1, len(colors) - 1)]
-        channels = [
-            round(int(start[offset:offset + 2], 16) * (1 - blend)
-                  + int(end[offset:offset + 2], 16) * blend)
-            for offset in (1, 3, 5)
-        ]
-        return "#{:02x}{:02x}{:02x}".format(*channels)
-
-    def _draw_result(self, color: str, width: int):
-        self._rounded(self.canvas, 24, 76, width - 24, 167, 16,
-                      fill=self.PANEL_LIGHT, outline=self.HEADER, tags="ui")
-        mark = "✓" if self.ui_state == "complete" else "!"
-        self.canvas.create_text(51, 122, text=mark, fill=color,
-                                font=("Segoe UI", 25, "bold"), tags="ui")
-        self.canvas.create_text(77, 105, text="VoiceOS", anchor="w", fill=self.TEXT,
-                                font=("Segoe UI", 10, "bold"), tags="ui")
-        self.canvas.create_text(77, 130, text=self._status_message, anchor="w", fill=self.MUTED,
-                                width=330, font=("Segoe UI", 9), tags="ui")
-
-    def _draw_confirmation(self, width: int, height: int):
-        self.canvas.itemconfigure(self._entry_window, state="hidden")
-        self.canvas.itemconfigure(self._run_window, state="hidden")
-        self.canvas.itemconfigure(self._mic_window, state="hidden")
-
-        # A luminous blue surround frames a Gmail-inspired draft preview.
-        card_left, card_top = 34, 34
-        card_right, card_bottom = width - 34, height - 32
-        self._rounded(self.canvas, card_left - 7, card_top - 4,
-                      card_right + 7, card_bottom + 8, 26,
-                      fill="#123d91", outline="#1761d5", width=2, tags="ui")
-        self._rounded(self.canvas, card_left, card_top,
-                      card_right, card_bottom, 22,
-                      fill="#202124", outline="#667085", width=1, tags="ui")
-
-        header_bottom = card_top + 44
-        self._rounded(self.canvas, card_left + 1, card_top + 1,
-                      card_right - 1, header_bottom + 12, 21,
-                      fill="#3c4043", outline="", tags="ui")
-        self.canvas.create_rectangle(card_left + 1, header_bottom - 3,
-                                     card_right - 1, header_bottom + 12,
-                                     fill="#3c4043", outline="", tags="ui")
-        self.canvas.create_oval(card_left + 18, card_top + 13,
-                                card_left + 35, card_top + 30,
-                                fill="#f7f7f7", outline="", tags="ui")
-        self.canvas.create_text(card_left + 26.5, card_top + 21,
-                                text="M", fill="#d93025",
-                                font=("Segoe UI", 9, "bold"), tags="ui")
-        self.canvas.create_text(card_left + 48, card_top + 22,
-                                text="New Message", anchor="w", fill="#f1f3f4",
-                                font=("Segoe UI", 11, "bold"), tags="ui")
-        self.canvas.create_text(card_right - 20, card_top + 22, text="×",
-                                fill="#bdc1c6", font=("Segoe UI", 16),
-                                tags="ui")
-
-        command = self._pending_command or ""
-        recipient = self._extract_recipient(command)
-        subject = self._extract_subject(command)
-
-        to_y = header_bottom + 25
-        subject_y = to_y + 40
-        body_top = subject_y + 27
-        footer_y = card_bottom - 39
-        self.canvas.create_text(card_left + 20, to_y, text="To",
-                                anchor="w", fill="#bdc1c6",
-                                font=("Segoe UI", 10), tags="ui")
-        chip_left = card_left + 57
-        chip_right = min(card_right - 20, chip_left + max(116, min(300, len(recipient) * 7 + 24)))
-        self._rounded(self.canvas, chip_left, to_y - 15, chip_right, to_y + 13, 14,
-                      fill="#303b4a", outline="", tags="ui")
-        self.canvas.create_text(chip_left + 12, to_y - 1,
-                                text=recipient, anchor="w", fill="#d7e3f4",
-                                width=chip_right - chip_left - 20,
-                                font=("Segoe UI", 9), tags="ui")
-        self.canvas.create_line(card_left + 18, to_y + 22, card_right - 18, to_y + 22,
-                                fill="#3c4043", tags="ui")
-
-        self.canvas.create_text(card_left + 20, subject_y, text=subject,
-                                anchor="w", fill="#e8eaed",
-                                width=card_right - card_left - 40,
-                                font=("Segoe UI", 10), tags="ui")
-        self.canvas.create_line(card_left + 18, subject_y + 17,
-                                card_right - 18, subject_y + 17,
-                                fill="#3c4043", tags="ui")
-
-        body = self._extract_body(command) or ""
-        self.canvas.create_text(card_left + 20, body_top, text=body,
-                                anchor="nw", fill="#e8eaed",
-                                width=card_right - card_left - 40,
-                                font=("Segoe UI", 10), tags="ui")
-        self.canvas.create_text(card_left + 20, footer_y - 12,
-                                text="This opens a draft in your mail app. Review and send it there.",
-                                anchor="w", fill="#9aa0a6",
-                                font=("Segoe UI", 8), tags="ui")
-        self.canvas.create_text(width - 205, footer_y + 8, text="Cancel",
-                                fill="#bdc1c6", font=("Segoe UI", 9, "bold"),
-                                tags=("ui", "cancel"))
-        button_left, button_right = width - 168, width - 47
-        self._rounded(self.canvas, button_left, footer_y - 10,
-                      button_right, footer_y + 27, 13,
-                      fill="#1a73e8", outline="", tags=("ui", "approve"))
-        self.canvas.create_text((button_left + button_right) / 2, footer_y + 8,
-                                text="Open draft", fill="#ffffff",
-                                font=("Segoe UI", 9, "bold"), tags=("ui", "approve"))
+    def _activate_action(self, _event=None):
+        if self.ui_state == "confirm":
+            if self._focus_action == "approve":
+                self._approve_pending()
+            elif self._focus_action == "cancel":
+                self._cancel_pending()
+            return "break"
+        self._on_run_command()
+        return "break"
 
     @staticmethod
     def _extract_recipient(command: str) -> str:
@@ -416,15 +271,21 @@ class VoiceOSUI:
         return match.group(1).strip() if match else ""
 
     def _tick(self):
-        self._phase += 0.24
+        started = time.perf_counter()
+        self._phase += min(.1, started - self._last_tick)
+        self._last_tick = started
+        self._display_level += (self._level - self._display_level) * .24
         self._draw()
-        self.root.after(33, self._tick)
+        delay = max(10, 33 - round((time.perf_counter() - started) * 1000))
+        self.root.after(delay, self._tick)
 
     def _set_state(self, state: str, message: str, kind: str = "info"):
         if self._collapse_job:
             self.root.after_cancel(self._collapse_job)
             self._collapse_job = None
         self.ui_state = state
+        self._hover_action = None
+        self._focus_action = None
         self._status_message = message
         self._status_kind = kind
         self.status_text.config(text=message)
@@ -432,29 +293,31 @@ class VoiceOSUI:
         self.current_mode = "compact" if state == "idle" else "expanded"
         self.is_compact = state == "idle"
         self.is_expanded = not self.is_compact
-        self._animate_to_size(*(self.IDLE_SIZE if state == "idle" else
-                                self.CONFIRM_SIZE if state == "confirm" else self.ACTIVE_SIZE))
+        self._animate_to_size(*self._target_size())
         self._draw()
 
+    def _target_size(self):
+        return (self.IDLE_SIZE if self.ui_state == "idle" else self.CONFIRM_SIZE if self.ui_state == "confirm"
+                else self.RESULT_SIZE if self.ui_state in {"complete", "error"}
+                else self.TEXT_SIZE if self._text_mode
+                else self.TASK_SIZE if self._active_request and self.ui_state in {"thinking", "executing"}
+                else self.ACTIVE_SIZE)
+
     def _collapse(self):
+        self._text_mode = False
+        self._active_request = ""
         self._set_state("idle", "Ready when you are")
 
     def _schedule_collapse(self, milliseconds: int = 2600):
         self._collapse_job = self.root.after(milliseconds, self._collapse)
 
     def _on_canvas_click(self, event):
-        if self.ui_state == "confirm" and event.x >= self.root.winfo_width() - 68 and event.y < 62:
-            self.root.destroy()
-            return
-        if event.x > self.root.winfo_width() - 52 and event.y < 56:
-            self.root.destroy()
-            return
+        self.root.focus_set()
         if self.ui_state == "confirm":
-            height = self.root.winfo_height()
-            width = self.root.winfo_width()
-            if width - 168 <= event.x <= width - 47 and height - 81 <= event.y <= height - 44:
+            action = self._action_at(event.x, event.y)
+            if action == "approve":
                 self._approve_pending()
-            elif width - 255 <= event.x < width - 176 and height - 81 <= event.y <= height - 44:
+            elif action == "cancel":
                 self._cancel_pending()
             return
         if self.ui_state == "idle":
@@ -513,15 +376,26 @@ class VoiceOSUI:
         self.assistant = assistant
         return self
 
+    def _show_text_command(self, _event=None):
+        if self.ui_state == "confirm":
+            return "break"
+        self._text_mode = True
+        self._set_state("thinking", "Type a request")
+        self._draw()
+        self.command_entry.focus_set()
+        return "break"
+
     def _on_run_command(self):
         text = self.command_entry.get().strip()
         if text:
+            self._text_mode = False
             self.command_entry.delete(0, tk.END)
             self.handle_command(text)
 
     def _on_mic_command(self):
         if self.ui_state == "listening":
             return
+        self._text_mode = False
         self._set_state("listening", "Speak naturally — I’m listening")
         threading.Thread(target=self._mic_worker, daemon=True).start()
 
@@ -546,6 +420,7 @@ class VoiceOSUI:
         if not text or not text.strip():
             return None
         command = text.strip()
+        self._active_request = command
         self._log_transcript(f"You: {command}")
         if self._needs_confirmation(command):
             self._pending_command = command

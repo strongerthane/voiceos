@@ -339,10 +339,10 @@ def main():
     try:
         from assistant import VoiceAssistant
         voice_ui.attach_assistant(VoiceAssistant())   # TTS follows ai_config
-        print("🧠 Hybrid AI layer attached — type a request below, e.g. "
+        print("AI layer attached — type a request below, e.g. "
               "'open linkedin' or 'open youtube and play chess videos'")
     except Exception as e:
-        print(f"⚠️  AI layer unavailable in this session ({e})")
+        print(f"WARNING: AI layer unavailable in this session ({e})")
 
     voice_ui.command_entry.bind("<Return>", lambda e: voice_ui._on_run_command())
     voice_ui.transcript.config(state=tk.NORMAL)
@@ -363,7 +363,7 @@ def main():
     print("\n--- Voice Mode Test ---")
     print("Click the compact bar to activate voice input")
 
-    print("\n▶️  VoiceOS UI initialized successfully")
+    print("\n>> VoiceOS UI initialized successfully")
     print("Ready for voice commands and interface interactions")
 
     # Start the Tk event loop

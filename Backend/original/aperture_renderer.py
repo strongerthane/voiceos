@@ -113,15 +113,18 @@ class ApertureRenderer:
         if state == "confirm":
             left, top, right, bottom = self.sheet_box(width)
             # Action details unfold within the same top-edge surface.
+            # General confirmation card: works for booking, app actions, email, etc.
             self._envelope(image, left + 29, top + 29)
-            self._text(image, (left + 50, top + 29), "Email draft", size=15, bold=True)
-            self._text(image, (left + 22, top + 61), "To", size=11, color=(184, 194, 214))
+            # Title: action being confirmed
+            self._text(image, (left + 50, top + 29), "Confirm action", size=15, bold=True)
+            # The pending command / what will happen
+            self._text(image, (left + 22, top + 61), "Action", size=11, color=(184, 194, 214))
             self._text(image, (left + 46, top + 61), recipient, size=13,
                        max_width=right - left - 72)
             self._text(image, (left + 22, top + 91), subject, size=18,
                        max_width=right - left - 48)
             self._text(image, (left + 22, top + 120),
-                       body or "Opens a draft. You review and send it.", size=11,
+                       body or "Review before continuing.", size=11,
                        color=(198, 206, 222), max_width=right - left - 44)
             for name, box in self.controls(width).items():
                 primary = name == "approve"
@@ -138,7 +141,7 @@ class ApertureRenderer:
                                           radius=14 * s, outline=(169, 180, 255), width=4)
                 if primary:
                     self._text(image, ((box[0] + box[2]) / 2 - 9, (box[1] + box[3]) / 2),
-                               "Open draft", size=13, color=(18, 22, 33), bold=True, centered=True)
+                               "Approve", size=13, color=(18, 22, 33), bold=True, centered=True)
                     ax, ay = box[2] - 24, (box[1] + box[3]) / 2
                     pen.line(((ax - 6) * s, ay * s, (ax + 5) * s, ay * s),
                              fill=(27, 32, 46), width=4)

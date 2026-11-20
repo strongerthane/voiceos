@@ -14,6 +14,134 @@ from typing import Any, Dict, Optional
 import tkinter as tk
 from PIL import ImageTk
 from aperture_renderer import ApertureRenderer
+import ctypes
+from ctypes import wintypes
+
+
+# ------------------------------------------------------------------
+# System-wide global hotkeys via RegisterHotKey.
+# More reliable than WH_KEYBOARD_LL low-level hooks on this machine.
+# Runs in a daemon thread with a message-only window and GetMessage loop.
+# ------------------------------------------------------------------
+_user32 = ctypes.windll.user32
+_kernel32 = ctypes.windll.kernel32
+
+WM_HOTKEY = 0x0312
+MOD_ALT = 0x0001
+MOD_CONTROL = 0x0002
+MOD_SHIFT = 0x0004
+
+# Hotkey IDs
+HK_CAD = 1   # Ctrl+Alt+D  -> voice-to-text
+HK_CSD = 2   # Ctrl+Shift+D -> voice-to-action
+HK_ESC = 3   # Esc -> toggle screen-highlight (illumination)
+
+VK_D = 0x44
+VK_ESCAPE = 0x1B
+
+_hotkey_hwnd = None
+_hotkey_thread = None
+_hotkey_stop = threading.Event()
+
+
+class WNDCLASSEXW(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.UINT),
+        ("style", wintypes.UINT),
+        ("lpfnWndProc", ctypes.c_void_p),
+        ("cbClsExtra", ctypes.c_int),
+        ("cbWndExtra", ctypes.c_int),
+        ("hInstance", wintypes.HINSTANCE),
+        ("hIcon", wintypes.HICON),
+        ("hCursor", wintypes.HCURSOR),
+        ("hbrBackground", wintypes.HBRUSH),
+        ("lpszMenuName", wintypes.LPCWSTR),
+        ("lpszClassName", wintypes.LPCWSTR),
+        ("hIconSm", wintypes.HICON),
+    ]
+
+
+def _hotkey_thread_fn(root, on_hotkey):
+    """Create a message-only window, register global hotkeys, and pump messages.
+
+    ``on_hotkey(hotkey_id)`` is called on the Tk thread (via root.after) when a
+    registered hotkey is pressed.
+    """
+    global _hotkey_hwnd
+
+    hinst = _kernel32.GetModuleHandleW(None)
+    class_name = "VoiceOSHotkeyWnd"
+
+    wndclass = WNDCLASSEXW()
+    wndclass.cbSize = ctypes.sizeof(wndclass)
+    wndclass.lpfnWndProc = ctypes.c_void_p(ctypes.cast(_user32.DefWindowProcW, ctypes.c_void_p).value)
+    wndclass.hInstance = hinst
+    wndclass.lpszClassName = class_name
+
+    if not _user32.RegisterClassExW(ctypes.byref(wndclass)):
+        err = _kernel32.GetLastError()
+        print(f"[VoiceOS] RegisterClassExW failed (error {err})", flush=True)
+        return
+
+    _hotkey_hwnd = _user32.CreateWindowExW(
+        0, class_name, "VoiceOSHotkey", 0,
+        0, 0, 0, 0,
+        0, 0, hinst, 0,
+    )
+    if not _hotkey_hwnd:
+        err = _kernel32.GetLastError()
+        print(f"[VoiceOS] CreateWindowExW failed (error {err})", flush=True)
+        return
+
+    # Register global hotkeys (work regardless of which window has focus).
+    registered = []
+    for hid, mods, vk in (
+        (HK_CAD, MOD_CONTROL | MOD_ALT, VK_D),
+        (HK_CSD, MOD_CONTROL | MOD_SHIFT, VK_D),
+        (HK_ESC, 0, VK_ESCAPE),
+    ):
+        if _user32.RegisterHotKey(_hotkey_hwnd, hid, mods, vk):
+            registered.append(hid)
+        else:
+            err = _kernel32.GetLastError()
+            print(f"[VoiceOS] RegisterHotKey id={hid} failed (error {err})", flush=True)
+
+    print(f"[VoiceOS] Global hotkeys registered: {registered}", flush=True)
+
+    msg = wintypes.MSG()
+    while not _hotkey_stop.is_set():
+        ret = _user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
+        if ret == 0:  # WM_QUIT
+            break
+        if ret == -1:  # error
+            continue
+        if msg.message == WM_HOTKEY:
+            root.after(0, lambda hid=msg.wParam: on_hotkey(hid))
+        _user32.TranslateMessage(ctypes.byref(msg))
+        _user32.DispatchMessageW(ctypes.byref(msg))
+
+    # Unregister and clean up.
+    for hid in (HK_CAD, HK_CSD, HK_ESC):
+        try:
+            _user32.UnregisterHotKey(_hotkey_hwnd, hid)
+        except Exception:
+            pass
+    if _hotkey_hwnd:
+        _user32.DestroyWindow(_hotkey_hwnd)
+        _hotkey_hwnd = None
+    try:
+        _user32.UnregisterClassW(class_name, hinst)
+    except Exception:
+        pass
+    print("[VoiceOS] Hotkey thread stopped", flush=True)
+
+
+def _stop_hotkey_thread():
+    """Signal the hotkey thread to stop."""
+    _hotkey_stop.set()
+    # Post a quit message to unblock GetMessageW if it is blocked.
+    if _hotkey_hwnd:
+        _user32.PostMessageW(_hotkey_hwnd, 0x0012, 0, 0)  # WM_QUIT
 
 
 class VoiceOSUI:
@@ -69,6 +197,27 @@ class VoiceOSUI:
         self._focus_action = None
         self._native = None
 
+        # Global hotkey state (RegisterHotKey; works without focus).
+        self._hotkey_stop = threading.Event()
+
+        # Toggle state for Esc screen-highlight (RegisterHotKey fires on
+        # press only, so we toggle rather than detect hold).
+        self._esc_toggle = False
+
+        # Chord edge-detection state (prevents rapid-fire re-triggering).
+        self._cad_active = False   # Ctrl+Alt+D -> voice-to-text
+        self._csd_active = False   # Ctrl+Shift+D -> voice-to-action
+
+        # Screen-highlight (Esc toggle) mode: fullscreen transparent overlay
+        # with a small laser-pointer dot that follows the mouse.
+        self._highlight_active = False
+        self._highlight_overlay = None
+        self._highlight_canvas = None
+        self._highlight_job = None
+        self._overlay_bg = None
+        self._trail_points = []
+        self.HIGHLIGHT_COLOR = "#00CED1"   # turquoise / transparent blue
+
         from native_glass import enable_dpi_awareness
         enable_dpi_awareness()
         self.root = tk.Tk()
@@ -84,12 +233,18 @@ class VoiceOSUI:
             self.root.wm_attributes("-alpha", 1.0)
         except tk.TclError:
             pass
-        self.root.bind("<Escape>", lambda _event: self.root.destroy())
         self.root.bind("<Return>", self._activate_action)
         self.root.bind("<Tab>", self._tab_action)
         self.root.bind("<space>", lambda event: self._activate_action(event)
                        if self.ui_state == "confirm" else None)
         self.root.bind("<Control-t>", self._show_text_command)
+        # Voice shortcuts (Ctrl+Alt+D voice-to-text, Ctrl+Shift+D voice-to-action)
+        # and screen-highlight (Esc toggle) are handled system-wide by the
+        # RegisterHotKey hotkey thread started below. Tk key bindings do not
+        # fire on this borderless transparent window, so they are intentionally
+        # omitted. (Esc is registered globally below; do not bind it here.)
+        self.root.focus_force()
+        self._start_hotkey()
 
         self.canvas = tk.Canvas(self.root, bg=self.KEY_COLOR, highlightthickness=0,
                                 bd=0, takefocus=0)
@@ -134,6 +289,13 @@ class VoiceOSUI:
         except (OSError, AttributeError):
             pass
         self.root.bind("<Destroy>", self._release_native, add="+")
+        self.root.focus_force()
+
+        # Start system-wide global hotkey thread (RegisterHotKey daemon thread
+        # with a message-only window). Works regardless of which window has focus.
+        self._hotkey_thread = threading.Thread(target=self._run_hotkey_thread, daemon=True)
+        self._hotkey_thread.start()
+
         self._draw()
         self.root.after(33, self._tick)
 
@@ -176,11 +338,10 @@ class VoiceOSUI:
         width = max(1, self.root.winfo_width())
         height = max(1, self.root.winfo_height())
         render_width, render_height = self._target_size()
+        recipient, subject, body = self._confirm_details()
         frame = self._renderer.render(
             render_width, render_height, self.ui_state, self._phase, self._display_level,
-            recipient=self._extract_recipient(self._pending_command or ""),
-            subject=self._extract_subject(self._pending_command or ""),
-            body=self._extract_body(self._pending_command or ""),
+            recipient=recipient, subject=subject, body=body,
             request=self._active_request,
             message=self._status_message, hover=self._hover_action,
             focus=self._focus_action, text_mode=self._text_mode,
@@ -224,6 +385,7 @@ class VoiceOSUI:
         if event.widget is self.root and self._native:
             self._native.close()
             self._native = None
+        self._stop_hotkey()
 
     def _on_pointer(self, event):
         self._hover_action = self._action_at(event.x, event.y)
@@ -270,11 +432,43 @@ class VoiceOSUI:
         match = re.search(r"\b(?:saying|with body)\s+(.+)$", command, re.I)
         return match.group(1).strip() if match else ""
 
+    def _confirm_details(self) -> tuple[str, str, str]:
+        """Extract general confirmation details for any pending action.
+
+        Returns (recipient, subject, body) where:
+          - recipient = the target/app being acted on
+          - subject = short description of what will happen
+          - body = fuller description shown below
+        """
+        cmd = self._pending_command or ""
+        if not cmd:
+            return ("", "", "Review before continuing.")
+
+        # Try email-style extraction first (works for email confirmations)
+        recipient = self._extract_recipient(cmd)
+        subject = self._extract_subject(cmd)
+        body = self._extract_body(cmd)
+
+        # If no email-style parts found, use the whole command as the action
+        if not recipient and not subject and not body:
+            recipient = cmd
+            subject = "Execute this command"
+            body = "Review the action before continuing."
+        elif recipient and not subject:
+            subject = f"Act on {recipient}"
+            body = body or f"This will run: {cmd}"
+        elif subject and not recipient:
+            recipient = "Action"
+            body = body or f"This will run: {cmd}"
+
+        return (recipient, subject, body)
+
     def _tick(self):
         started = time.perf_counter()
         self._phase += min(.1, started - self._last_tick)
         self._last_tick = started
         self._display_level += (self._level - self._display_level) * .24
+
         self._draw()
         delay = max(10, 33 - round((time.perf_counter() - started) * 1000))
         self.root.after(delay, self._tick)
@@ -399,17 +593,55 @@ class VoiceOSUI:
         self._set_state("listening", "Speak naturally — I’m listening")
         threading.Thread(target=self._mic_worker, daemon=True).start()
 
-    def _mic_worker(self):
+    def _voice_to_text(self):
+        """Listen and insert transcribed text into the command entry without executing."""
+        if self.ui_state in ("listening", "confirm"):
+            return
+        self._text_mode = True
+        self._set_state("listening", "Speak — text will appear in the bar")
+        threading.Thread(target=self._mic_worker, args=(False,), daemon=True).start()
+
+    def _voice_to_action(self):
+        """Listen and immediately execute the transcribed command."""
+        if self.ui_state in ("listening", "confirm"):
+            return
+        self._text_mode = False
+        self._set_state("listening", "Speak naturally — I’m listening")
+        threading.Thread(target=self._mic_worker, args=(True,), daemon=True).start()
+
+    def _on_mic_command(self):
+        if self.ui_state in ("listening", "confirm"):
+            return
+        self._text_mode = False
+        self._set_state("listening", "Speak naturally — I’m listening")
+        threading.Thread(target=self._mic_worker, args=(True,), daemon=True).start()
+
+    def _mic_worker(self, execute: bool = True):
         try:
             from voice_io import listen
             text = listen(on_level=self._set_level_threadsafe)
         except Exception as exc:
             print(f"mic error: {exc}")
             text = None
+        finally:
+            # Allow the hotkey to fire again after the voice session ends.
+            self._cad_active = False
+            self._csd_active = False
         if text:
-            self.root.after(0, lambda: self.handle_command(text))
+            self.root.after(0, lambda: self._handle_voice_result(text, execute))
         else:
             self.root.after(0, lambda: self.show_status_card("No speech was captured. Try again when ready.", "error"))
+
+    def _handle_voice_result(self, text: str, execute: bool):
+        if execute:
+            self.handle_command(text)
+        else:
+            # Voice-to-text: just insert into the entry field, don't execute
+            self.command_entry.delete(0, tk.END)
+            self.command_entry.insert(0, text)
+            self._text_mode = True
+            self._set_state("thinking", "Text captured — press Enter to run")
+            self.command_entry.focus_set()
 
     @staticmethod
     def _needs_confirmation(text: str) -> bool:
@@ -464,6 +696,167 @@ class VoiceOSUI:
         self.transcript.insert(tk.END, line + "\n")
         self.transcript.see(tk.END)
         self.transcript.config(state=tk.DISABLED)
+
+    # ------------------------------------------------------------------
+    # Screen-highlight mode: Esc toggle to show a small turquoise laser-pointer
+    # dot that follows the mouse across the whole screen. The overlay covers the
+    # entire screen so the pointer can work anywhere without breaking the desktop.
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _fade_color(hex_color: str, alpha: float) -> str:
+        """Return ``hex_color`` darkened toward black by ``alpha`` (0-1).
+        Simulates translucency on a Tk canvas that has no per-pixel alpha."""
+        hex_color = hex_color.lstrip("#")
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        r = int(r * alpha)
+        g = int(g * alpha)
+        b = int(b * alpha)
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def _start_screen_highlight(self):
+        """Show a fullscreen transparent overlay with a small laser-pointer dot
+        that follows the mouse. Center stays transparent so the desktop shows
+        through; only the pointer dot is visible over the screen."""
+        if self._highlight_active:
+            return
+        self._highlight_active = True
+        self._trail_points = []
+
+        ov = tk.Toplevel(self.root)
+        ov.overrideredirect(True)
+        ov.wm_attributes("-topmost", True)
+        # Make the window background fully transparent so the desktop shows
+        # through everywhere. Only the laser-pointer dot is drawn on top.
+        try:
+            ov.wm_attributes("-transparentcolor", "#000001")
+        except tk.TclError:
+            pass
+        sw = ov.winfo_screenwidth()
+        sh = ov.winfo_screenheight()
+        ov.geometry(f"{sw}x{sh}+0+0")
+        ov.configure(bg="#000001")
+
+        canvas = tk.Canvas(ov, bg="#000001", highlightthickness=0, bd=0)
+        canvas.place(x=0, y=0, width=sw, height=sh)
+
+        # Center stays transparent — no fill, desktop shows through entirely.
+        # The laser-pointer dot is drawn by the redraw loop as the mouse moves.
+
+        canvas.bind("<Motion>", self._on_highlight_motion)
+        canvas.bind("<Escape>", lambda _event: self._stop_screen_highlight())
+        canvas.bind("<Button-1>", lambda _event: self._stop_screen_highlight())
+
+        self._highlight_overlay = ov
+        self._highlight_canvas = canvas
+        self._redraw_highlight()
+
+        # Keep VoiceOS on top so it stays responsive during highlight mode.
+        try:
+            self.root.attributes("-topmost", True)
+        except tk.TclError:
+            pass
+
+    def _stop_screen_highlight(self):
+        """Hide the screen-highlight overlay and clear the trail."""
+        self._highlight_active = False
+        if self._highlight_job is not None:
+            try:
+                self.root.after_cancel(self._highlight_job)
+            except tk.TclError:
+                pass
+            self._highlight_job = None
+        if self._highlight_overlay is not None:
+            try:
+                self._highlight_overlay.destroy()
+            except tk.TclError:
+                pass
+            self._highlight_overlay = None
+            self._highlight_canvas = None
+        self._trail_points = []
+        try:
+            self.root.attributes("-topmost", True)
+        except tk.TclError:
+            pass
+
+    def _on_highlight_motion(self, event):
+        """Record a mouse point for the fading blue trail."""
+        if not self._highlight_active:
+            return
+        now = time.perf_counter()
+        self._trail_points.append((event.x, event.y, now))
+        cutoff = now - 1.5
+        self._trail_points = [p for p in self._trail_points if p[2] > cutoff]
+
+    def _redraw_highlight(self):
+        """Draw a small laser-pointer dot at the latest mouse position.
+        The dot follows the mouse across the whole screen. Edge strips are
+        gone; the center stays transparent so only the pointer dot is visible."""
+        if not self._highlight_active or self._highlight_canvas is None:
+            return
+        canvas = self._highlight_canvas
+        try:
+            canvas.delete("trail")
+        except tk.TclError:
+            return
+
+        now = time.perf_counter()
+        color = self.HIGHLIGHT_COLOR
+
+        # Small laser-pointer dot at the most recent mouse position.
+        # Bright turquoise, compact (~10px), with a tiny fading tail.
+        if self._trail_points:
+            x, y, t = self._trail_points[-1]
+            dot_size = 10
+            canvas.create_oval(
+                x - dot_size, y - dot_size, x + dot_size, y + dot_size,
+                fill=color, outline="", tags="trail",
+            )
+            # Tiny connecting line to the previous point for a subtle tail.
+            if len(self._trail_points) >= 2:
+                px, py, _pt = self._trail_points[-2]
+                canvas.create_line(
+                    px, py, x, y, fill=color, width=2, capstyle=tk.ROUND,
+                    joinstyle=tk.ROUND, tags="trail",
+                )
+
+        self._highlight_job = self.root.after(33, self._redraw_highlight)
+
+    # ------------------------------------------------------------------
+    # System-wide global hotkey handling (RegisterHotKey).
+    # ------------------------------------------------------------------
+    def on_hotkey(self, hotkey_id: int):
+        """Called on the Tk thread when a registered global hotkey fires."""
+        if hotkey_id == HK_CAD:
+            if not self._cad_active:
+                self._cad_active = True
+                self.root.after(0, self._voice_to_text)
+        elif hotkey_id == HK_CSD:
+            if not self._csd_active:
+                self._csd_active = True
+                self.root.after(0, self._voice_to_action)
+        elif hotkey_id == HK_ESC:
+            self._esc_toggle = not self._esc_toggle
+            if self._esc_toggle:
+                self.root.after(0, self._start_screen_highlight)
+            else:
+                self.root.after(0, self._stop_screen_highlight)
+
+    def _run_hotkey_thread(self):
+        """Run the module-level hotkey thread in this instance's context."""
+        _hotkey_thread_fn(self.root, self.on_hotkey)
+
+    def _start_hotkey(self):
+        """Start the system-wide global hotkey daemon thread."""
+        self._hotkey_stop.clear()
+        self._hotkey_thread = threading.Thread(target=self._run_hotkey_thread, daemon=True)
+        self._hotkey_thread.start()
+        print("[VoiceOS] Hotkey thread started", flush=True)
+
+    def _stop_hotkey(self):
+        """Signal the hotkey thread to stop."""
+        _stop_hotkey_thread()
 
 
 class RPY:

@@ -17,6 +17,10 @@ SAMPLE_RATE = 16_000
 CHANNELS = 1
 SAMPLE_WIDTH = 2  # int16 PCM
 BLOCKSIZE = 1_024
+CALIBRATION_SECONDS = 0.5      # short, so user doesn't speak during it
+THRESHOLD_FLOOR = 3.0          # lower floor = more sensitive
+THRESHOLD_MULTIPLIER = 1.05    # closer to noise floor = more sensitive
+TARGET_PEAK = 28000            # peak-normalize to ~85% of int16 full scale
 
 
 def list_input_devices() -> List[Dict[str, object]]:
@@ -32,9 +36,71 @@ def list_input_devices() -> List[Dict[str, object]]:
     ]
 
 
-def to_audio_data(pcm: bytes, sample_rate: int) -> "object":
-    """Convert signed 16-bit PCM into SpeechRecognition ``AudioData``."""
+def find_working_device(min_rms: float = 2.0, test_duration: float = 0.5) -> Optional[object]:
+    """Auto-detect an input device that is actually receiving audio.
+
+    Opens each input device briefly and measures RMS. Returns the device
+    with the highest average RMS if any device shows audio activity
+    (avg_rms >= min_rms), otherwise returns None so the caller can use
+    the default device and let calibration handle it.
+    """
+    import numpy as np
+    import sounddevice as sd
+
+    best_idx: Optional[int] = None
+    best_rms = 0.0
+
+    for info in list_input_devices():
+        idx = info["index"]
+        rms_values: List[float] = []
+
+        def callback(indata, frames, timing, status):
+            if status:
+                return
+            rms = float(np.sqrt(np.mean(np.square(indata.astype(np.float32)))))
+            rms_values.append(rms)
+
+        try:
+            with sd.InputStream(samplerate=SAMPLE_RATE, channels=1,
+                                dtype="int16", blocksize=BLOCKSIZE,
+                                device=idx, callback=callback):
+                time.sleep(test_duration)
+        except Exception:
+            continue
+
+        if rms_values:
+            avg_rms = float(np.mean(rms_values))
+            print(f"[VoiceOS] device [{idx}] {info['name'][:40]} avg_rms={avg_rms:.1f}", flush=True)
+            if avg_rms > best_rms:
+                best_rms = avg_rms
+                best_idx = idx
+
+    if best_rms >= min_rms and best_idx is not None:
+        print(f"[VoiceOS] using microphone device [{best_idx}] "
+              f"(avg_rms={best_rms:.1f})", flush=True)
+        return best_idx
+
+    print(f"[VoiceOS] best device avg_rms={best_rms:.1f} < {min_rms}; using default", flush=True)
+    return None
+
+
+def to_audio_data(pcm: bytes, sample_rate: int, gain: float = 1.0) -> "object":
+    """Convert signed 16-bit PCM into SpeechRecognition ``AudioData``.
+
+    Applies an optional fixed gain multiplier, or peak-normalizes when
+    ``gain`` is 0 (scales the loudest sample to ``TARGET_PEAK``).
+    """
+    import numpy as np
     import speech_recognition as sr
+
+    arr = np.frombuffer(pcm, dtype="<i2").astype(np.float32)
+    if gain == 0.0:
+        peak = float(np.max(np.abs(arr))) if arr.size else 0.0
+        if peak > 0:
+            gain = TARGET_PEAK / peak
+    if gain != 1.0:
+        arr = np.clip(arr * gain, -32768, 32767).astype("<i2")
+        pcm = arr.tobytes()
     return sr.AudioData(pcm, sample_rate, SAMPLE_WIDTH)
 
 
@@ -56,14 +122,14 @@ def record_audio_data(
             print(f"microphone status: {status}")
         level = float(np.sqrt(np.mean(np.square(indata.astype(np.float32)))))
         if on_level:
-            on_level(min(1.0, level / 4_000.0))
+            on_level(min(1.0, level / 2_000.0))
 
     recording = sd.rec(frame_count, samplerate=sample_rate, channels=CHANNELS,
                        dtype="int16", device=device, callback=callback)
     sd.wait()
     if on_level:
         on_level(0.0)
-    return to_audio_data(recording.tobytes(), sample_rate)
+    return to_audio_data(recording.tobytes(), sample_rate, gain=0.0)
 
 
 def _record_utterance(
@@ -91,7 +157,7 @@ def _record_utterance(
         rms = float(np.sqrt(np.mean(np.square(chunk.astype(np.float32)))))
         chunks.put((chunk.tobytes(), rms))
         if on_level:
-            on_level(min(1.0, rms / 4_000.0))
+            on_level(min(1.0, rms / 2_000.0))
 
     ambient: List[float] = []
     collected: List[bytes] = []
@@ -103,7 +169,7 @@ def _record_utterance(
     with sd.InputStream(samplerate=sample_rate, channels=CHANNELS,
                         dtype="int16", blocksize=BLOCKSIZE, device=device,
                         callback=callback):
-        calibration_until = listen_started + 0.40
+        calibration_until = listen_started + CALIBRATION_SECONDS
         while time.monotonic() < calibration_until:
             try:
                 _, rms = chunks.get(timeout=0.10)
@@ -111,8 +177,13 @@ def _record_utterance(
             except queue.Empty:
                 pass
 
-        noise_floor = float(np.median(ambient)) if ambient else 0.0
-        threshold = max(180.0, noise_floor * 3.0)
+        noise_floor = float(np.median(ambient)) if ambient else 50.0
+        threshold = max(THRESHOLD_FLOOR, noise_floor * THRESHOLD_MULTIPLIER)
+        print(f"[VoiceOS] calibration: noise_floor={noise_floor:.1f} threshold={threshold:.1f} device={device}", flush=True)
+        if noise_floor < 2.0:
+            print("[VoiceOS] WARNING: noise floor is near zero — no microphone audio detected. "
+                  "Check Windows microphone privacy settings and ensure the mic is not muted.", flush=True)
+        print("Listening…", flush=True)
         while True:
             now = time.monotonic()
             if not started and now - listen_started >= timeout:
@@ -126,6 +197,7 @@ def _record_utterance(
             if not started:
                 if rms >= threshold:
                     started = True
+                    print(f"[VoiceOS] speech started rms={rms:.1f}", flush=True)
                     phrase_started = now
                     last_voice = now
                     collected.append(pcm)
@@ -133,26 +205,35 @@ def _record_utterance(
                 collected.append(pcm)
                 if rms >= threshold:
                     last_voice = now
-                elif now - last_voice >= 0.80:
+                elif now - last_voice >= 1.0:
+                    print(f"[VoiceOS] speech ended rms={rms:.1f}", flush=True)
                     break
 
     if on_level:
         on_level(0.0)
     if not collected:
         raise TimeoutError("no speech captured")
-    return to_audio_data(b"".join(collected), sample_rate)
+    return to_audio_data(b"".join(collected), sample_rate, gain=0.0)
 
 
 def transcribe_audio(audio: "object", recognizer: Optional["object"] = None) -> str:
     """Run an AudioData object through the existing SpeechRecognition pipeline."""
     import speech_recognition as sr
     recognizer = recognizer or sr.Recognizer()
-    return recognizer.recognize_google(audio)
+    try:
+        return recognizer.recognize_google(audio)
+    except sr.UnknownValueError:
+        raise ValueError(
+            "Google Speech could not understand the audio. "
+            "Try speaking more clearly or check your microphone level."
+        )
+    except sr.RequestError as exc:
+        raise ValueError(f"Google Speech request failed: {exc}")
 
 
 def listen(
-    timeout: float = 6.0,
-    phrase_time_limit: float = 10.0,
+    timeout: float = 5.0,
+    phrase_time_limit: float = 8.0,
     *,
     device: Optional[object] = None,
     on_level: Optional[Callable[[float], None]] = None,
@@ -165,8 +246,10 @@ def listen(
         print(f"Speech-to-text unavailable: {exc}")
         return None
 
+    # Auto-detect a working microphone when no device is specified.
+    # (Calibration in _record_utterance handles threshold per-device.)
+
     try:
-        print("Listening…")
         audio = _record_utterance(timeout, phrase_time_limit, device=device,
                                   on_level=on_level)
     except Exception as exc:
@@ -180,7 +263,7 @@ def listen(
         print(f"Heard: {text}")
         return text
     except Exception as exc:
-        print(f"Could not transcribe ({exc})")
+        print(f"Could not transcribe ({type(exc).__name__}: {exc})")
         return None
 
 

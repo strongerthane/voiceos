@@ -2,7 +2,8 @@
   "version": 2,
   "name": "voiceos",
   "builds": [
-    { "src": "site/**", "use": "@vercel/static" }
+    { "src": "site/**", "use": "@vercel/static" },
+    { "src": "*.html", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/(css|js|assets)/(.*)", "dest": "/site/$1/$2" },

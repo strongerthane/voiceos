@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Download — VoiceOS</title>
+  <meta name="description" content="Download VoiceOS, the voice-first desktop assistant for Windows. Single-file VoiceOS.exe, 180 MB. Windows 10/11." />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/download.css" />
+</head>
+<body>
+
+  <header class="header" aria-label="Site navigation">
+    <div class="container nav">
+      <a href="/" class="brand" aria-label="VoiceOS home">VoiceOS</a>
+      <nav class="nav-links">
+        <a href="features.html">Features</a>
+        <a href="download.html" aria-current="page">Download</a>
+        <a href="docs.html">Docs</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="download.html" class="btn btn-primary">Download VoiceOS</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Page header -->
+    <section class="section sheet" style="text-align:center;">
+      <div class="container">
+        <h1 style="font-size:var(--h1); line-height:1.2; margin-bottom:1rem;">Download VoiceOS</h1>
+        <p style="color:var(--text-secondary); max-width:62ch; margin:0 auto;">VoiceOS is a single-file download for Windows. No installer, no dependencies — run VoiceOS.exe and start talking to your desktop.</p>
+      </div>
+    </section>
+
+    <!-- Download card -->
+    <section class="section">
+      <div class="container">
+        <div class="download-card sheet notch">
+          <div class="download-info">
+            <h2>VoiceOS for Windows</h2>
+            <p style="color:var(--text-secondary);">Windows 10 / Windows 11 · 64-bit</p>
+            <ul class="spec-list">
+              <li><strong>Size:</strong> ~180 MB (single-file, PyInstaller)</li>
+              <li><strong>STT:</strong> faster-whisper (local) + Google/Gemini fallback</li>
+              <li><strong>Audio:</strong> local capture to audio_captures/</li>
+            </ul>
+          </div>
+          <div class="download-actions">
+            <a id="downloadBtn" href="https://github.com/strongerthane/voiceos/releases/latest/download/VoiceOS.exe" class="btn btn-primary" download>
+              Download VoiceOS.exe <span style="font-size:0.9em; opacity:0.9;">→</span>
+            </a>
+            <p id="downloadNote" style="margin-top:1rem; color:var(--text-muted); font-size:0.9rem;">
+              First release coming soon — check back or see Docs for the local build.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How to install -->
+    <section class="section">
+      <div class="container">
+        <h2 style="font-size:var(--h2); margin-bottom:1rem;">How to install</h2>
+        <ol class="install-steps" style="max-width:62ch; color:var(--text-secondary); line-height:1.7;">
+          <li>Download <strong>VoiceOS.exe</strong> (above).</li>
+          <li>Run VoiceOS.exe — no installer required.</li>
+          <li>Allow microphone access when prompted.</li>
+          <li>Say a command: "Open Spotify," "Search the web," or "Capture my screen."</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Platform availability -->
+    <section class="section notch" style="text-align:center;">
+      <div class="container">
+        <h2 style="font-size:var(--h2); margin-bottom:1rem;">Coming to more stores</h2>
+        <p style="color:var(--text-secondary); max-width:60ch; margin:0 auto 2rem auto;">Windows first. Microsoft Store (MSIX) and Apple App Store packaging are in progress — sign up to be notified when they're available.</p>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Enter your email to be notified when MSIX / Apple Store builds are ready.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top:1px solid var(--border-subtle); padding:3rem 0; text-align:center;">
+    <div class="container">
+      <p style="color:var(--text-muted); font-size:0.9rem;">
+        VoiceOS — voice-first desktop assistant for Windows.<br />
+        &copy; 2026 VoiceOS. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

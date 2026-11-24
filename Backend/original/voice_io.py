@@ -271,14 +271,20 @@ def say(text: str, rate: int = 1) -> bool:
     """Speak through Windows System.Speech (SAPI). Returns True on success."""
     if not text:
         return False
-    safe = str(text).replace("'", "").replace('"', "")
+    try:
+        rate = int(rate)
+    except (ValueError, TypeError):
+        rate = 1
+    ps_cmd = (
+        "Add-Type -AssemblyName System.Speech; "
+        "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+        f"$s.Rate = {rate}; $s.Speak([Console]::In.ReadToEnd())"
+    )
     try:
         proc = subprocess.run(
-            ["powershell", "-NoProfile", "-Command",
-             "Add-Type -AssemblyName System.Speech; "
-             "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-             f"$s.Rate = {rate}; $s.Speak('{safe}')"],
-            check=False, timeout=max(15, len(safe) // 8), capture_output=True,
+            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            input=str(text), capture_output=True, text=True, check=False,
+            timeout=max(15, len(str(text)) // 8),
         )
         return proc.returncode == 0
     except (OSError, subprocess.SubprocessError) as exc:

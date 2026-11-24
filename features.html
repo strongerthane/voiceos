@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Features — VoiceOS</title>
+  <meta name="description" content="VoiceOS features: app discovery, screen context capture, local voice pipeline, smart plugins, scheduling, TTS, and file organization." />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/features.css" />
+</head>
+<body>
+
+  <header class="header" aria-label="Site navigation">
+    <div class="container nav">
+      <a href="/" class="brand" aria-label="VoiceOS home">VoiceOS</a>
+      <nav class="nav-links">
+        <a href="features.html" aria-current="page">Features</a>
+        <a href="download.html">Download</a>
+        <a href="docs.html">Docs</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="download.html" class="btn btn-primary">Download VoiceOS</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Page header: heading carries its own weight, no kicker -->
+    <section class="section sheet" style="text-align:center;">
+      <div class="container">
+        <h1 style="font-size:var(--h1); line-height:1.2; margin-bottom:1rem;">Features</h1>
+        <p style="color:var(--text-secondary); max-width:62ch; margin:0 auto;">VoiceOS is a voice-first desktop assistant for Windows. Here is what your voice can do.</p>
+      </div>
+    </section>
+
+    <!-- App discovery -->
+    <section class="section feature-block">
+      <div class="container feature-wrap">
+        <div class="feature-copy">
+          <h2>App discovery &amp; launching</h2>
+          <p>Open any desktop app by name. VoiceOS searches your installed applications, the internet, and falls back to the browser when nothing local matches. Say "Open Spotify" or "Search for weather in Seattle" — it just works.</p>
+          <ul class="feature-list">
+            <li>Launch installed Windows apps by voice</li>
+            <li>Internet search with browser fallback</li>
+            <li>Fuzzy app-name matching</li>
+          </ul>
+        </div>
+        <div class="feature-note notch">
+          <p><strong>Scene:</strong> You're in the middle of work and need an app open without breaking flow. One sentence, no menu diving.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen context -->
+    <section class="section feature-block">
+      <div class="container feature-wrap reverse">
+        <div class="feature-copy">
+          <h2>Screen context capture (laser pointer)</h2>
+          <p>Capture what's on your screen with a mouse-trail based pointer — no boxes, no overlays, no clutter. VoiceOS records the context so your next voice command knows what you're looking at.</p>
+          <ul class="feature-list">
+            <li>Mouse-trail based screen capture</li>
+            <li>No bounding boxes or UI chrome</li>
+            <li>Audio captures saved to audio_captures/</li>
+          </ul>
+        </div>
+        <div class="feature-note sheet">
+          <p><strong>Scene:</strong> Show VoiceOS what you're looking at, then ask a question about it. Context carries across your conversation.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Voice pipeline -->
+    <section class="section feature-block">
+      <div class="container feature-wrap">
+        <div class="feature-copy">
+          <h2>Local voice pipeline</h2>
+          <p>faster-whisper runs locally for fast, private speech-to-text. Google/Gemini STT acts as a fallback when local confidence is low. Hallucination filtering keeps responses grounded, and local audio capture lives in audio_captures/.</p>
+          <ul class="feature-list">
+            <li>faster-whisper STT (local, private)</li>
+            <li>Google/Gemini STT fallback</li>
+            <li>Whisper hallucination filtering</li>
+            <li>Local audio capture to audio_captures/</li>
+          </ul>
+        </div>
+        <div class="feature-note notch">
+          <p><strong>Scene:</strong> Voice processing stays local by default. Cloud fallback only when you need it.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Smart plugins -->
+    <section class="section feature-block">
+      <div class="container feature-wrap reverse">
+        <div class="feature-copy">
+          <h2>Smart plugins</h2>
+          <p>Extend VoiceOS with plugins for workflows, scheduling, TTS, and file organization. The AJR architecture (config, event bus, orchestrator, guardrails, voice pipeline, TTS, interrupt controller, session shell, distributed worker, sandbox) keeps every plugin isolated and safe.</p>
+          <ul class="feature-list">
+            <li>Workflows &amp; scheduling</li>
+            <li>Text-to-speech (TTS)</li>
+            <li>File organization</li>
+            <li>Sandboxed plugin execution</li>
+          </ul>
+        </div>
+        <div class="feature-note sheet">
+          <p><strong>Scene:</strong> "Organize my downloads folder" or "Schedule a reminder for 3 PM" — plugins handle it, sandboxed.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interrupt & guardrails -->
+    <section class="section notch" style="text-align:center;">
+      <div class="container">
+        <h2>Built to be interrupted</h2>
+        <p style="color:var(--text-secondary); max-width:60ch; margin:0 auto 2rem auto;">VoiceOS has an interrupt controller and guardrails built in. Stop a command mid-sentence, cancel an action, or override an automation — you stay in control.</p>
+        <a href="download.html" class="btn btn-primary">Download VoiceOS.exe</a>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top:1px solid var(--border-subtle); padding:3rem 0; text-align:center;">
+    <div class="container">
+      <p style="color:var(--text-muted); font-size:0.9rem;">
+        VoiceOS — voice-first desktop assistant for Windows.<br />
+        &copy; 2026 VoiceOS. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

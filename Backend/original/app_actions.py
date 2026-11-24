@@ -71,10 +71,7 @@ class AppActions:
         """Launch an app path without interpolating it into a shell command."""
         try:
             if os.name == "nt":
-                subprocess.Popen(
-                    ["cmd.exe", "/c", "start", "", app_path],
-                    close_fds=True
-                )
+                os.startfile(app_path)
             else:
                 subprocess.Popen([app_path])
             return True

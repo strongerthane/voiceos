@@ -1,0 +1,86 @@
+/* ============================================================
+   VoiceOS — Features page layout
+   ============================================================ */
+
+.feature-block {
+  padding: 5rem 0;
+}
+
+.feature-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.feature-wrap.reverse {
+  grid-template-columns: 1fr 1fr;
+}
+
+.feature-copy h2 {
+  font-size: var(--h2);
+  line-height: 1.25;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.feature-copy p {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  max-width: 56ch;
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+}
+
+.feature-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feature-list li {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.feature-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--voiceos-cyan);
+}
+
+.feature-note {
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.feature-note p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .feature-wrap,
+  .feature-wrap.reverse {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .feature-copy h2 {
+    font-size: 1.75rem;
+  }
+  .feature-copy p {
+    max-width: none;
+  }
+}

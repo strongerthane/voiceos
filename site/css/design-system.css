@@ -1,0 +1,312 @@
+/* ============================================================
+   VoiceOS Design System — Premium voice-first desktop assistant
+   Visual world: translucent black notch surfaces,
+   cyan → electric blue → violet → magenta gradient,
+   Segoe UI typography, soft asymmetric optical edges.
+   Mode: Persuade (landing page). Owner: VoiceOS landing.
+   ============================================================ */
+
+/* ── Tokens (established VoiceOS visual world) ── */
+:root {
+  /* Gradient palette — Electric Cyan → Vibrant Blue → Neon Violet → Magenta */
+  --voiceos-cyan: #00e5ff;
+  --voiceos-blue: #0066ff;
+  --voiceos-violet: #8b00ff;
+  --voiceos-magenta: #ff00cc;
+
+  /* Core surfaces */
+  --surface-dark: #0a0a0a;          /* background: deep black */
+  --surface-notch: rgba(0, 0, 0, 0.71);   /* translucent black notch bar (71%) */
+  --surface-sheet: rgba(0, 0, 0, 0.82);   /* confirmation sheet (82%) */
+  --surface-elevated: rgba(20, 20, 20, 0.9);
+
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: #c7c7c7;
+  --text-muted: #8a8a8a;
+
+  /* Gradients */
+  --grad-primary: linear-gradient(135deg, var(--voiceos-cyan), var(--voiceos-blue), var(--voiceos-violet), var(--voiceos-magenta));
+  --grad-surface: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+
+  /* Borders & edges */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --edge-radius: 16px;
+  --edge-radius-sm: 8px;
+
+  /* Shadows: offset + soft blur (craft floor: no zero-offset colored halos) */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+
+  /* Typography — Segoe UI per DESIGN.md */
+  --font-ui: "Segoe UI", "Segoe UI Variable", system-ui, -apple-system, sans-serif;
+
+  /* Scale */
+  --display-size: 5rem;
+  --h1: 3rem;
+  --h2: 2rem;
+  --h3: 1.5rem;
+  --body: 1.125rem;
+  --small: 0.875rem;
+
+  --tracking-floor: -0.04em;
+}
+
+/* ── Reset & base ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  background: var(--grad-surface);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--body);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--voiceos-cyan);
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ── Visual world: notch surfaces ── */
+.notch {
+  background: var(--surface-notch);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--edge-radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.sheet {
+  background: var(--surface-sheet);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--edge-radius);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Gradient ring (used only inside waveform/reflection per DESIGN.md) ── */
+.gradient-ring {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.gradient-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: var(--grad-primary);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.9;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.75rem;
+  border-radius: var(--edge-radius-sm);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, filter 0.2s ease-out;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--grad-primary);
+  color: #fff;
+  box-shadow: 0 0 0 0 rgba(0, 229, 255, 0);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 30px rgba(0, 229, 255, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--voiceos-cyan);
+  outline-offset: 2px;
+}
+
+/* ── Layout ── */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.section {
+  padding: 6rem 0;
+}
+
+/* ── Header / nav ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s ease-out;
+}
+
+.nav-links a:hover {
+  color: var(--voiceos-cyan);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ── Badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--voiceos-cyan);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.08);
+}
+
+/* ── Gradient text utility (heading emphasis only, not decoration) ── */
+.gradient-text {
+  background: var(--grad-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Section heading ── */
+.section-head {
+  max-width: 700px;
+  margin: 0 auto 4rem auto;
+  text-align: center;
+}
+
+.section-head .kicker {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--voiceos-cyan);
+  margin-bottom: 1rem;
+}
+
+.section-head h2 {
+  font-size: var(--h2);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.section-head p {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+}
+
+/* ── Section numbers (deprecated by craft floor; avoided) ── */
+
+/* ── Animations ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* ── Mobile base ── */
+@media (max-width: 768px) {
+  .section {
+    padding: 4rem 0;
+  }
+  .section-head h2 {
+    font-size: 1.75rem;
+  }
+  .nav-links {
+    display: none;
+  }
+}

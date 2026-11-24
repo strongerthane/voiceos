@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docs — VoiceOS</title>
+  <meta name="description" content="VoiceOS documentation: quick start, voice commands, screen context, plugins, and troubleshooting." />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/docs.css" />
+</head>
+<body>
+
+  <header class="header" aria-label="Site navigation">
+    <div class="container nav">
+      <a href="/" class="brand" aria-label="VoiceOS home">VoiceOS</a>
+      <nav class="nav-links">
+        <a href="features.html">Features</a>
+        <a href="download.html">Download</a>
+        <a href="docs.html" aria-current="page">Docs</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="download.html" class="btn btn-primary">Download VoiceOS</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Page header -->
+    <section class="section sheet" style="text-align:center;">
+      <div class="container">
+        <h1 style="font-size:var(--h1); line-height:1.2; margin-bottom:1rem;">Docs</h1>
+        <p style="color:var(--text-secondary); max-width:62ch; margin:0 auto;">Get started with VoiceOS: install, voice commands, screen context, plugins, and troubleshooting.</p>
+      </div>
+    </section>
+
+    <div class="container docs-wrap">
+      <!-- Sidebar nav -->
+      <nav class="docs-nav" aria-label="Documentation sections">
+        <ul>
+          <li><a href="#quick-start">Quick start</a></li>
+          <li><a href="#voice-commands">Voice commands</a></li>
+          <li><a href="#screen-context">Screen context</a></li>
+          <li><a href="#plugins">Plugins</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </nav>
+
+      <!-- Content -->
+      <article class="docs-content" aria-label="Documentation content">
+
+        <section id="quick-start">
+          <h2>Quick start</h2>
+          <p>Download <strong>VoiceOS.exe</strong>, run it, and grant microphone access when prompted. VoiceOS lives in your system tray and listens for your wake word or a hotkey.</p>
+          <div class="callout notch">
+            <p><strong>First run:</strong> VoiceOS builds its app index on first launch. This takes a few seconds — app launching will be instant after that.</p>
+          </div>
+        </section>
+
+        <section id="voice-commands">
+          <h2>Voice commands</h2>
+          <table class="command-table">
+            <thead>
+              <tr><th>Say</th><th>What happens</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>"Open Spotify"</td><td>Launches Spotify (or the best local match).</td></tr>
+              <tr><td>"Search for weather in Seattle"</td><td>Searches the web and opens your browser.</td></tr>
+              <tr><td>"Capture my screen"</td><td>Captures screen context via the laser pointer.</td></tr>
+              <tr><td>"Organize my downloads folder"</td><td>Runs the file-organization plugin.</td></tr>
+              <tr><td>"Stop" / "Cancel"</td><td>Interrupt controller halts the current action.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="screen-context">
+          <h2>Screen context (laser pointer)</h2>
+          <p>VoiceOS captures what's on your screen with a mouse-trail based pointer — no boxes, no overlays. Captures are saved to <code>audio_captures/</code> alongside local audio recordings.</p>
+        </section>
+
+        <section id="plugins">
+          <h2>Plugins</h2>
+          <p>VoiceOS uses an AJR architecture: config, event bus, orchestrator, guardrails, voice pipeline, TTS, interrupt controller, session shell, distributed worker, and sandbox. Plugins run sandboxed for workflows, scheduling, TTS, and file organization.</p>
+          <p><em>Plugin authoring docs coming soon.</em></p>
+        </section>
+
+        <section id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <table class="command-table">
+            <thead>
+              <tr><th>Issue</th><th>Fix</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>VoiceOS doesn't hear me</td><td>Check microphone permissions in Windows Settings &gt; Privacy &gt; Microphone.</td></tr>
+              <tr><td>App won't launch by voice</td><td>Rebuild the app index from the VoiceOS menu, or use the exact app name.</td></tr>
+              <tr><td>Screen capture blank</td><td>Ensure display scaling is 100–150% and graphics drivers are current.</td></tr>
+              <tr><td>Download link not available</td><td>VoiceOS.exe is published as a GitHub Release asset. Check back or build locally from the repo.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </article>
+    </div>
+  </main>
+
+  <footer style="border-top:1px solid var(--border-subtle); padding:3rem 0; text-align:center;">
+    <div class="container">
+      <p style="color:var(--text-muted); font-size:0.9rem;">
+        VoiceOS — voice-first desktop assistant for Windows.<br />
+        &copy; 2026 VoiceOS. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

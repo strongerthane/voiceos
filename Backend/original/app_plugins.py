@@ -36,20 +36,6 @@ class AppPlugin(ABC):
         """Close application."""
         pass
     
-    def execute_command(self, command: str) -> Tuple[bool, str]:
-        """Execute PowerShell command."""
-        try:
-            result = subprocess.run(
-                ['powershell', '-Command', command],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            return result.returncode == 0, result.stdout
-        except Exception as e:
-            return False, str(e)
-
-
 class WordPlugin(AppPlugin):
     """Microsoft Word automation."""
     

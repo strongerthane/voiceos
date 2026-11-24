@@ -226,7 +226,7 @@ def _execute_command_with_verification(
     try:
         result = subprocess.run(
             command,
-            shell=True,
+            cmd = shlex.split(command)
             capture_output=True,
             text=True,
             timeout=verification_config.get("timeout", 30),

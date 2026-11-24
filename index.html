@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoiceOS — Voice-first desktop assistant for Windows</title>
+  <meta name="description" content="VoiceOS is a voice-first desktop assistant for Windows. Local-first, private, built for power users. Download VoiceOS.exe — three tiers, safe and secure." />
+  <!-- DIRECTION CONTRACT (impeccable new-work sec.5):
+       THESIS: VoiceOS is a private, local-first voice-first desktop assistant for Windows power users — your desktop, spoken into being.
+       OWN-WORLD: VoiceOS established visual world — translucent black notch, cyan→electric blue→violet→magenta gradient confined to waveform, Segoe UI, soft asymmetric edges, no embossed chrome.
+       STORY: Persuade mode — visitor learns what VoiceOS is, believes it's safe/private (local STT, audio_captures/ on disk), and acts by downloading VoiceOS.exe or choosing a tier.
+       FIRST VIEWPORT: Thesis statement (h1 + supporting copy + waveform visual + dual CTAs), not a header. No kicker/eyebrow; heading carries its own weight.
+       FORM: Multi-page static site (Home, Features, Download, Docs). Three tiers: Free/Pro/Enterprise. One authored motion moment (waveform canvas). No stock components.
+  -->
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/home.css" />
+</head>
+<body>
+
+  <!-- Header / nav -->
+  <header class="header" aria-label="Site navigation">
+    <div class="container nav">
+      <a href="/" class="brand" aria-label="VoiceOS home">VoiceOS</a>
+      <nav class="nav-links">
+        <a href="features.html">Features</a>
+        <a href="download.html">Download</a>
+        <a href="docs.html">Docs</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="download.html" class="btn btn-primary">Download VoiceOS</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- First viewport: thesis, not a header -->
+  <main>
+    <section class="hero sheet section" aria-labelledby="hero-heading">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <h1 id="hero-heading" style="font-size:var(--display-size); line-height:1.1; letter-spacing:-0.03em; margin-bottom:1.25rem;">
+              Your desktop,<br />
+              spoken into being.
+            </h1>
+            <p style="font-size:1.25rem; color:var(--text-secondary); max-width:62ch; margin-bottom:2rem;">
+              VoiceOS is a voice-first desktop assistant for Windows, built for power users.
+              Launch apps, capture screen context, and run workflows — all with your voice.
+              Local-first and private: your voice data never leaves your machine unless you choose.
+            </p>
+            <div class="hero-actions">
+              <a href="download.html" class="btn btn-primary" style="padding:1rem 2rem; font-size:1.125rem;">
+                Download VoiceOS.exe <span aria-hidden="true">→</span>
+              </a>
+              <a href="features.html" class="btn btn-ghost" style="padding:1rem 2rem; font-size:1.125rem;">
+                See features
+              </a>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <!-- Waveform canvas — gradient lives only here per DESIGN.md -->
+            <div class="waveform-wrap gradient-ring" style="width:460px; height:460px; border-radius:50%; margin:0 auto;">
+              <canvas id="waveform" width="460" height="460" aria-label="Voice waveform visual" role="img"></canvas>
+            </div>
+            <p style="margin-top:1rem; color:var(--text-muted); font-size:0.9rem; text-align:center;">
+              Windows 10/11 · 180 MB single-file · Local-first &amp; private
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust / safety strip -->
+    <section class="section notch" style="text-align:center; padding:4rem 0;">
+      <div class="container">
+        <h2 style="font-size:var(--h2); margin-bottom:1rem;">Private by design. Safe by default.</h2>
+        <p style="color:var(--text-secondary); max-width:60ch; margin:0 auto 2rem auto;">
+          VoiceOS runs faster-whisper locally on your machine. Audio captures live in
+          <code>audio_captures/</code> on your disk — not in the cloud. Google/Gemini is only a
+          fallback, and you control when it's used. No telemetry, no data selling, no surprises.
+        </p>
+      </div>
+    </section>
+
+    <!-- Steve Jobs quote -->
+    <section class="section sheet" style="text-align:center; padding:5rem 0;">
+      <div class="container">
+        <blockquote style="font-size:2rem; line-height:1.3; font-style:italic; color:var(--text-primary); max-width:62ch; margin:0 auto 1.5rem auto;">
+          "Speech is..." <span style="color:var(--voiceos-cyan);">— Steve Jobs (attributed)</span>
+        </blockquote>
+        <p style="color:var(--text-muted); font-size:0.9rem; max-width:50ch; margin:0 auto;">
+          Quote pending verification — placeholder pending source confirmation.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3 Tiers -->
+    <section class="section" aria-labelledby="tiers-heading">
+      <div class="container">
+        <div class="section-head" style="text-align:center;">
+          <h2 id="tiers-heading">Three tiers. One voice.</h2>
+          <p>Choose the tier that fits your workflow. All tiers are local-first and private.</p>
+        </div>
+        <div class="tier-grid">
+          <article class="tier-card sheet">
+            <h3>VoiceOS Free</h3>
+            <div class="tier-price">$0</div>
+            <p class="tier-desc">For getting started with voice control on Windows.</p>
+            <ul class="tier-features">
+              <li><span style="color:var(--voiceos-cyan);">●</span> App discovery &amp; launching</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Local faster-whisper STT</li>
+              <li><span style="color:var(--text-muted);">○</span> Screen context capture</li>
+              <li><span style="color:var(--text-muted);">○</span> Google/Gemini fallback</li>
+              <li><span style="color:var(--text-muted);">○</span> Plugins &amp; workflows</li>
+            </ul>
+            <a href="download.html" class="btn btn-primary" style="width:100%; margin-top:auto;">Download Free</a>
+          </article>
+          <article class="tier-card sheet" style="position:relative;">
+            <div class="tier-badge" style="position:absolute; top:-14px; left:50%; transform:translateX(-50%); background:var(--voiceos-cyan); color:#000; padding:0.2rem 0.8rem; border-radius:999px; font-size:0.75rem; font-weight:700; letter-spacing:0.08em;">Most popular</div>
+            <h3>VoiceOS Pro</h3>
+            <div class="tier-price">$8<span style="font-size:0.8rem; opacity:0.6;">/mo</span></div>
+            <p class="tier-desc">For power users who want full voice control.</p>
+            <ul class="tier-features">
+              <li><span style="color:var(--voiceos-cyan);">●</span> App discovery &amp; launching</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Local faster-whisper STT</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Screen context capture</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Google/Gemini fallback</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Plugins &amp; workflows</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> TTS &amp; scheduling</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> File organization</li>
+            </ul>
+            <a href="download.html" class="btn btn-primary" style="width:100%; margin-top:auto;">Download Pro</a>
+          </article>
+          <article class="tier-card sheet">
+            <h3>VoiceOS Enterprise</h3>
+            <div class="tier-price">Contact</div>
+            <p class="tier-desc">For teams and organizations. Custom deployment.</p>
+            <ul class="tier-features">
+              <li><span style="color:var(--voiceos-cyan);">●</span> Everything in Pro</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Centralized config &amp; guardrails</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Distributed worker support</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Sandboxed plugin audit</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Priority support &amp; SLA</li>
+              <li><span style="color:var(--voiceos-cyan);">●</span> Volume licensing</li>
+            </ul>
+            <a href="download.html" class="btn btn-ghost" style="width:100%; margin-top:auto;">Contact Sales</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features preview -->
+    <section class="section" aria-labelledby="features-heading">
+      <div class="container">
+        <div class="section-head" style="text-align:center;">
+          <h2 id="features-heading">Everything your voice can do</h2>
+          <p>App discovery, screen context, local voice pipeline, and smart plugins — built for Windows power users.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card sheet fade-in-up">
+            <h3>App discovery &amp; launching</h3>
+            <p>Open desktop apps, search the internet, or fall back to the browser — all by voice.</p>
+          </article>
+          <article class="feature-card sheet fade-in-up delay-100">
+            <h3>Screen context (laser pointer)</h3>
+            <p>Capture what's on your screen with a mouse-trail based pointer — no boxes, no clutter.</p>
+          </article>
+          <article class="feature-card sheet fade-in-up delay-200">
+            <h3>Local voice pipeline</h3>
+            <p>faster-whisper STT with Gemini fallback, hallucination filtering, local audio capture.</p>
+          </article>
+          <article class="feature-card sheet fade-in-up delay-300">
+            <h3>Smart plugins</h3>
+            <p>Extensible plugin system for workflows, scheduling, TTS, and file organization.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download CTA strip -->
+    <section class="section notch" style="text-align:center;">
+      <div class="container">
+        <h2 style="font-size:var(--h2); margin-bottom:1rem;">Ready to talk to your desktop?</h2>
+        <p style="color:var(--text-secondary); max-width:60ch; margin:0 auto 2rem auto;">VoiceOS is free to download for Windows. Get started in under a minute.</p>
+        <a href="download.html" class="btn btn-primary" style="padding:1rem 2.5rem; font-size:1.125rem;">Download VoiceOS.exe</a>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top:1px solid var(--border-subtle); padding:3rem 0; text-align:center;">
+    <div class="container">
+      <p style="color:var(--text-muted); font-size:0.9rem;">
+        VoiceOS — voice-first desktop assistant for Windows.<br />
+        Local-first &amp; private · &copy; 2026 VoiceOS. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/waveform.js"></script>
+</body>
+</html>

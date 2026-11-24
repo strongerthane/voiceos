@@ -1,0 +1,134 @@
+/* ============================================================
+   VoiceOS — Docs page layout
+   ============================================================ */
+
+.docs-wrap {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 3rem;
+  align-items: start;
+  padding: 2rem 0;
+}
+
+.docs-nav {
+  position: sticky;
+  top: 120px;
+}
+
+.docs-nav ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.docs-nav a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--edge-radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  transition: all 0.2s ease-out;
+}
+
+.docs-nav a:hover,
+.docs-nav a[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.docs-content h2 {
+  font-size: var(--h2);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.docs-content h2:first-of-type {
+  margin-top: 0;
+}
+
+.docs-content p {
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+}
+
+.docs-content code {
+  font-family: var(--font-ui);
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  color: var(--voiceos-cyan);
+}
+
+.callout {
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.callout p {
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: none;
+}
+
+.command-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.command-table th,
+.command-table td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.command-table th {
+  color: var(--voiceos-cyan);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.command-table td {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.command-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+@media (max-width: 768px) {
+  .docs-wrap {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .docs-nav {
+    position: static;
+    top: auto;
+  }
+  .docs-nav ul {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+  .docs-nav li {
+    flex-shrink: 0;
+  }
+  .docs-nav a {
+    white-space: nowrap;
+    padding: 0.5rem 1rem;
+  }
+}

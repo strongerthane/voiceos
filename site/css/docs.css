@@ -34,7 +34,7 @@
 
 .docs-nav a:hover,
 .docs-nav a[aria-current="page"] {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 229, 255, 0.08);
   border-color: var(--border-subtle);
   color: var(--text-primary);
 }
@@ -60,7 +60,7 @@
 .docs-content code {
   font-family: var(--font-ui);
   font-size: 0.9em;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 229, 255, 0.1);
   padding: 0.15em 0.4em;
   border-radius: 4px;
   color: var(--voiceos-cyan);
@@ -105,7 +105,7 @@
 }
 
 .command-table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 229, 255, 0.04);
 }
 
 @media (max-width: 768px) {

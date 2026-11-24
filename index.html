@@ -6,8 +6,8 @@
   <title>VoiceOS — Voice-first desktop assistant for Windows</title>
   <meta name="description" content="VoiceOS is a voice-first desktop assistant for Windows. Local-first, private, built for power users. Download VoiceOS.exe." />
   <!-- DIRECTION CONTRACT (impeccable new-work sec.5):
-       THESIS: VoiceOS is a private, local-first voice-first desktop assistant for Windows power users — your desktop, spoken into being. Refuses the SaaS marketing template (hero metrics, gradient text, glass cards, kicker headings).
-       OWN-WORLD: Deep black (#0a0a0a), cyan→blue→violet→magenta gradient confined to buttons and waveform, Segoe UI, solid translucent panels (no glass/blur decoration), soft asymmetric edges (16px), one authored motion moment (waveform).
+       THESIS: VoiceOS is a private, local-first voice-first desktop assistant for Windows power users — your desktop, spoken into being. Refuses the SaaS marketing template (hero metrics, gradient text, kicker headings).
+       OWN-WORLD: Deep black (#0a0a0a), cyan→blue→violet→magenta gradient confined to buttons and waveform, Segoe UI, frosted & liquid glass surfaces (backdrop-filter + blur), soft edges (16px), one authored motion moment (waveform).
        STORY: Persuade — visitor learns what VoiceOS is, believes it's safe/private (local STT, audio_captures/ on disk), and acts by downloading VoiceOS.exe or choosing a tier.
        FIRST VIEWPORT: Thesis statement (h1 + supporting copy + waveform visual + dual CTAs), not a header. No kicker/eyebrow; heading carries its own weight.
        FORM: Multi-page static site (Home, Features, Download, Docs). Three tiers: Free/Pro/Enterprise. One authored motion moment (waveform canvas). No stock components.
@@ -59,7 +59,7 @@
           </div>
           <div class="hero-visual">
             <!-- Waveform canvas — gradient lives only here per DESIGN.md -->
-            <div class="waveform-wrap">
+            <div class="waveform-wrap glass-liquid">
               <canvas id="waveform" width="460" height="460" aria-label="Voice waveform visual" role="img"></canvas>
             </div>
             <p class="caption">
@@ -91,7 +91,7 @@
           <p>Choose the tier that fits your workflow. All tiers are local-first and private.</p>
         </div>
         <div class="tier-grid">
-          <article class="tier-card panel">
+          <article class="tier-card panel-elevated">
             <h3>VoiceOS Free</h3>
                       <div class="tier-price">Free</div>
                       <p class="tier-desc">Get started with voice control on Windows.</p>
@@ -142,19 +142,19 @@
           <p>App discovery, screen context, local voice pipeline, and smart plugins built for Windows power users.</p>
         </div>
         <div class="feature-grid">
-          <article class="feature-card panel">
+          <article class="feature-card panel-elevated">
             <h3>App discovery &amp; launching</h3>
                       <p>Open desktop apps, search the internet, or fall back to the browser. All by voice.</p>
           </article>
-                    <article class="feature-card panel">
+                    <article class="feature-card panel-elevated">
             <h3>Screen context (laser pointer)</h3>
                       <p>Capture what's on your screen with a mouse-trail based pointer. No boxes, no clutter.</p>
           </article>
-          <article class="feature-card panel">
+          <article class="feature-card panel-elevated">
             <h3>Local voice pipeline</h3>
                       <p>faster-whisper STT with Gemini fallback. Hallucination filtering, local audio capture.</p>
           </article>
-                    <article class="feature-card panel">
+                    <article class="feature-card panel-elevated">
             <h3>Smart plugins</h3>
             <p>Extensible plugin system for workflows, scheduling, TTS, and file organization.</p>
           </article>
@@ -165,7 +165,7 @@
     <!-- Download CTA strip -->
     <section class="section section-tight">
       <div class="container">
-        <div class="panel panel-elevated cta-strip">
+        <div class="panel glass-liquid cta-strip">
           <h2>Ready to talk to your desktop?</h2>
           <p>VoiceOS is free to download for Windows. Get started in under a minute.</p>
           <a href="download.html" class="btn btn-primary btn-lg">Download VoiceOS.exe</a>

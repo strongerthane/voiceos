@@ -90,6 +90,57 @@
   margin: 0;
 }
 
+/* Notify form */
+.notify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.notify-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.notify-input {
+  padding: 0.85rem 1rem;
+  border-radius: var(--edge-radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+}
+
+.notify-input:focus {
+  outline: 2px solid var(--voiceos-cyan);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.notify-btn {
+  padding: 0.85rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.notify-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.download-status {
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  min-height: 1.25rem;
+}
+
 .install-heading {
   font-size: var(--h2);
   line-height: 1.25;

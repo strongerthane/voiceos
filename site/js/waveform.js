@@ -1,5 +1,7 @@
 /* ============================================================
-   VoiceOS — Waveform visual (gradient confined to this canvas per DESIGN.md)
+   VoiceOS — Siri-style waveform visual (one authored motion moment)
+   Vertical bars with varying heights, smooth sine animation,
+   voice gradient (cyan → blue → violet → magenta) on glass capsule.
    ============================================================ */
 
 (function () {
@@ -8,72 +10,102 @@
 
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  const size = Math.round(rect.width);
 
-  canvas.width = size * dpr;
-  canvas.height = size * dpr;
-  ctx.scale(dpr, dpr);
-  canvas.style.width = size + "px";
-  canvas.style.height = size + "px";
-
-  const cx = size / 2;
-  const cy = size / 2;
-  const baseRadius = size / 2 - 24;
-  const barCount = 72;
-  const barWidth = 3;
-  const barGap = 3;
-
-  // Gradient voice palette — cyan → blue → violet → magenta
+  // Voice gradient palette
   const colors = ["#00e5ff", "#0066ff", "#8b00ff", "#ff00cc"];
 
+  let width = 0;
+  let height = 0;
+  let bars = [];
   let t = 0;
   let rafId;
 
-  function lerp(a, b, k) {
-    return a + (b - a) * k;
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    // Bar layout: 28 bars, spaced evenly across width
+    const barCount = 28;
+    const barWidth = 6;
+    const barGap = 8;
+    const totalWidth = barCount * barWidth + (barCount - 1) * barGap;
+    const startX = (width - totalWidth) / 2;
+
+    bars = [];
+    for (let i = 0; i < barCount; i++) {
+      bars.push({
+        x: startX + i * (barWidth + barGap),
+        w: barWidth,
+        baseHeight: height * 0.35,
+        phase: (i / barCount) * Math.PI * 2,
+        amp: 0.5 + Math.random() * 0.5,
+        speed: 0.015 + Math.random() * 0.02,
+      });
+    }
   }
 
   function draw() {
-    t += 0.025;
-    ctx.clearRect(0, 0, size, size);
+    t += 0.02;
 
-    // Outer decorative glow (soft, behind bars)
-    const glow = ctx.createRadialGradient(cx, cy, size * 0.1, cx, cy, size * 0.45);
-    glow.addColorStop(0, "rgba(0, 229, 255, 0.12)");
-    glow.addColorStop(1, "rgba(0, 229, 255, 0)");
-    ctx.fillStyle = glow;
+    ctx.clearRect(0, 0, width, height);
+
+    // Glass capsule background
+    const capsule = ctx.createLinearGradient(0, 0, 0, height);
+    capsule.addColorStop(0, "rgba(255, 255, 255, 0.06)");
+    capsule.addColorStop(0.5, "rgba(255, 255, 255, 0.03)");
+    capsule.addColorStop(1, "rgba(255, 255, 255, 0.06)");
+
+    ctx.fillStyle = capsule;
     ctx.beginPath();
-    ctx.arc(cx, cy, size * 0.42, 0, Math.PI * 2);
+    ctx.roundRect(0, 0, width, height, height / 2);
     ctx.fill();
 
-    for (let i = 0; i < barCount; i++) {
-      const angle = (i / barCount) * Math.PI * 2;
-      const phase = Math.sin(t + i * 0.18) * 0.5 + 0.5;
-      const height = 20 + phase * (baseRadius * 0.55);
-      const color = colors[Math.floor((i / barCount) * colors.length)];
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, width, height, height / 2);
+    ctx.stroke();
 
-      const x1 = cx + Math.cos(angle) * (baseRadius - height);
-      const y1 = cy + Math.sin(angle) * (baseRadius - height);
-      const x2 = cx + Math.cos(angle) * baseRadius;
-      const y2 = cy + Math.sin(angle) * baseRadius;
+    // Draw bars
+    const centerY = height / 2;
+    const maxBarHeight = height * 0.75;
 
-      ctx.save();
-      ctx.translate((x1 + x2) / 2, (y1 + y2) / 2);
-      ctx.rotate(angle);
+    bars.forEach((bar) => {
+      const phase = Math.sin(t + bar.phase) * 0.5 + 0.5;
+      const barHeight = bar.baseHeight * (0.4 + phase * 0.6 * bar.amp);
+      const barTop = centerY - barHeight / 2;
+
+      // Color by position across the gradient
+      const colorIndex = Math.floor((bar.x / width) * colors.length);
+      const color = colors[Math.min(colorIndex, colors.length - 1)];
+
+      // Glass bar with glow
       ctx.fillStyle = color;
       ctx.shadowColor = color;
-      ctx.shadowBlur = 14;
-      ctx.fillRect(-barWidth / 2, -height / 2, barWidth, height);
-      ctx.restore();
-    }
+      ctx.shadowBlur = barHeight > height * 0.5 ? 16 : 8;
+      ctx.fillRect(bar.x, barTop, bar.w, barHeight);
+      ctx.shadowBlur = 0;
+
+      // Inner highlight (clear glass edge)
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.fillRect(bar.x, barTop, bar.w * 0.35, barHeight);
+    });
 
     rafId = requestAnimationFrame(draw);
   }
 
+  window.addEventListener("resize", resize);
+  resize();
   draw();
 
-  // Pause when tab hidden (respect battery/lifecycle)
+  // Pause when tab hidden
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       cancelAnimationFrame(rafId);

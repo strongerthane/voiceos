@@ -10,7 +10,7 @@
 </head>
 <body>
 
-  <header class="header" aria-label="Site navigation">
+  <header class="header glass" aria-label="Site navigation">
     <div class="container nav">
       <a href="/" class="brand" aria-label="VoiceOS home">VoiceOS</a>
       <nav class="nav-links">
@@ -49,11 +49,12 @@
             </ul>
           </div>
           <div class="download-actions">
-            <a id="downloadBtn" href="https://github.com/strongerthane/voiceos/releases/download/v0.1.0-beta.1/VoiceOS.exe" class="btn btn-primary btn-lg btn-full" download>
+                      <a id="downloadBtn" href="https://github.com/strongerthane/voiceos/releases/download/v0.1.0-beta.1/VoiceOS.exe" class="btn btn-primary btn-lg btn-full">
               Download VoiceOS.exe <span class="download-arrow">→</span>
             </a>
+                      <div id="downloadStatus" class="download-status" role="status" aria-live="polite"></div>
             <p id="downloadNote" class="download-note">
-                          VoiceOS 0.1.0 Beta 1 for Windows x64. Single-file VoiceOS.exe — no installer required.
+                        VoiceOS 0.1.0 Beta 1 for Windows x64. Single-file VoiceOS.exe — no installer required.
             </p>
           </div>
         </div>
@@ -78,8 +79,13 @@
       <div class="container">
         <div class="panel panel-inset platform-strip">
           <h2 class="platform-heading">Coming to more stores</h2>
-          <p class="platform-copy">Windows first. Microsoft Store (MSIX) and Apple App Store packaging are in progress — sign up to be notified when they're available.</p>
-          <p class="platform-email">Enter your email to be notified when MSIX / Apple Store builds are ready.</p>
+              <p class="platform-copy">Windows first. Microsoft Store (MSIX) and Apple App Store packaging are in progress. Sign up to be notified when they're available.</p>
+              <form id="notifyForm" class="notify-form" novalidate>
+                <label for="notifyEmail" class="notify-label">Email address</label>
+                <input type="email" id="notifyEmail" name="email" placeholder="you@example.com" required class="notify-input" />
+                <button type="submit" class="btn btn-primary notify-btn">Notify me</button>
+                <p id="notifyMessage" class="notify-message" role="status" aria-live="polite"></p>
+              </form>
         </div>
       </div>
     </section>
@@ -88,11 +94,36 @@
   <footer class="panel-inset">
     <div class="container">
       <p class="footer-copy">
-        VoiceOS — voice-first desktop assistant for Windows.<br />
+              VoiceOS: voice-first desktop assistant for Windows.<br />
         &copy; 2026 VoiceOS. All rights reserved.
       </p>
     </div>
   </footer>
 
+        <script>
+          // Download button: show status since cross-origin download attr is ignored
+          const downloadBtn = document.getElementById("downloadBtn");
+          const downloadStatus = document.getElementById("downloadStatus");
+          if (downloadBtn && downloadStatus) {
+            downloadBtn.addEventListener("click", (e) => {
+              downloadStatus.textContent = "Starting download... (opens in new tab)";
+              downloadStatus.style.color = "var(--voiceos-cyan)";
+              // Link opens in same tab; user can save as. No cross-origin download attr support.
+            });
+          }
+
+          // Email notify form (client-side confirmation only; no backend endpoint)
+          const notifyForm = document.getElementById("notifyForm");
+          const notifyMessage = document.getElementById("notifyMessage");
+          if (notifyForm && notifyMessage) {
+            notifyForm.addEventListener("submit", (e) => {
+              e.preventDefault();
+              const email = document.getElementById("notifyEmail").value;
+              notifyMessage.textContent = "Thanks! We'll notify you at " + email + " when MSIX / Apple Store builds are ready.";
+              notifyMessage.style.color = "var(--voiceos-cyan)";
+              notifyForm.reset();
+            });
+          }
+        </script>
 </body>
 </html>

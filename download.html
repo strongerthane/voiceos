@@ -26,20 +26,22 @@
 
   <main>
     <!-- Page header -->
-    <section class="section sheet" style="text-align:center;">
+    <section class="section section-tight">
       <div class="container">
-        <h1 style="font-size:var(--h1); line-height:1.2; margin-bottom:1rem;">Download VoiceOS</h1>
-        <p style="color:var(--text-secondary); max-width:62ch; margin:0 auto;">VoiceOS is a single-file download for Windows. No installer, no dependencies — run VoiceOS.exe and start talking to your desktop.</p>
+        <div class="panel panel-inset">
+          <h1 class="page-title">Download VoiceOS</h1>
+          <p class="page-lead">VoiceOS is a single-file download for Windows. No installer, no dependencies — run VoiceOS.exe and start talking to your desktop.</p>
+        </div>
       </div>
     </section>
 
     <!-- Download card -->
     <section class="section">
       <div class="container">
-        <div class="download-card sheet notch">
+        <div class="download-card panel panel-elevated">
           <div class="download-info">
             <h2>VoiceOS for Windows</h2>
-            <p style="color:var(--text-secondary);">Windows 10 / Windows 11 · 64-bit</p>
+            <p class="download-spec">Windows 10 / Windows 11 · 64-bit</p>
             <ul class="spec-list">
               <li><strong>Size:</strong> ~180 MB (single-file, PyInstaller)</li>
               <li><strong>STT:</strong> faster-whisper (local) + Google/Gemini fallback</li>
@@ -47,10 +49,10 @@
             </ul>
           </div>
           <div class="download-actions">
-            <a id="downloadBtn" href="https://github.com/strongerthane/voiceos/releases/download/v0.1.0-beta.1/VoiceOS.exe" class="btn btn-primary" download>
-              Download VoiceOS.exe <span style="font-size:0.9em; opacity:0.9;">→</span>
+            <a id="downloadBtn" href="https://github.com/strongerthane/voiceos/releases/download/v0.1.0-beta.1/VoiceOS.exe" class="btn btn-primary btn-lg btn-full" download>
+              Download VoiceOS.exe <span class="download-arrow">→</span>
             </a>
-            <p id="downloadNote" style="margin-top:1rem; color:var(--text-muted); font-size:0.9rem;">
+            <p id="downloadNote" class="download-note">
                           VoiceOS 0.1.0 Beta 1 for Windows x64. Single-file VoiceOS.exe — no installer required.
             </p>
           </div>
@@ -61,8 +63,8 @@
     <!-- How to install -->
     <section class="section">
       <div class="container">
-        <h2 style="font-size:var(--h2); margin-bottom:1rem;">How to install</h2>
-        <ol class="install-steps" style="max-width:62ch; color:var(--text-secondary); line-height:1.7;">
+        <h2 class="install-heading">How to install</h2>
+        <ol class="install-steps">
           <li>Download <strong>VoiceOS.exe</strong> (above).</li>
           <li>Run VoiceOS.exe — no installer required.</li>
           <li>Allow microphone access when prompted.</li>
@@ -72,18 +74,20 @@
     </section>
 
     <!-- Platform availability -->
-    <section class="section notch" style="text-align:center;">
+    <section class="section section-tight">
       <div class="container">
-        <h2 style="font-size:var(--h2); margin-bottom:1rem;">Coming to more stores</h2>
-        <p style="color:var(--text-secondary); max-width:60ch; margin:0 auto 2rem auto;">Windows first. Microsoft Store (MSIX) and Apple App Store packaging are in progress — sign up to be notified when they're available.</p>
-        <p style="color:var(--text-muted); font-size:0.9rem;">Enter your email to be notified when MSIX / Apple Store builds are ready.</p>
+        <div class="panel panel-inset platform-strip">
+          <h2 class="platform-heading">Coming to more stores</h2>
+          <p class="platform-copy">Windows first. Microsoft Store (MSIX) and Apple App Store packaging are in progress — sign up to be notified when they're available.</p>
+          <p class="platform-email">Enter your email to be notified when MSIX / Apple Store builds are ready.</p>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer style="border-top:1px solid var(--border-subtle); padding:3rem 0; text-align:center;">
+  <footer class="panel-inset">
     <div class="container">
-      <p style="color:var(--text-muted); font-size:0.9rem;">
+      <p class="footer-copy">
         VoiceOS — voice-first desktop assistant for Windows.<br />
         &copy; 2026 VoiceOS. All rights reserved.
       </p>

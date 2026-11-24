@@ -71,6 +71,25 @@
   margin: 0;
 }
 
+.interrupt {
+  text-align: center;
+}
+
+.interrupt h2 {
+  font-size: var(--h2);
+  line-height: 1.25;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.interrupt-copy {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  max-width: 60ch;
+  margin: 0 auto 2rem auto;
+  line-height: 1.6;
+}
+
 @media (max-width: 768px) {
   .feature-wrap,
   .feature-wrap.reverse {

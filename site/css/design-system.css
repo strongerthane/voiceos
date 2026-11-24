@@ -1,12 +1,12 @@
 /* ============================================================
    VoiceOS Design System — Premium voice-first desktop assistant
-   Visual world: translucent black notch surfaces,
-   cyan → electric blue → violet → magenta gradient,
-   Segoe UI typography, soft asymmetric optical edges.
+   Visual world: deep black surfaces, cyan → electric blue → violet → magenta
+   gradient confined to buttons and waveform, Segoe UI typography,
+   soft asymmetric edges, no glass/blur decoration, no gradient text.
    Mode: Persuade (landing page). Owner: VoiceOS landing.
    ============================================================ */
 
-/* ── Tokens (established VoiceOS visual world) ── */
+/* ── Tokens ── */
 :root {
   /* Gradient palette — Electric Cyan → Vibrant Blue → Neon Violet → Magenta */
   --voiceos-cyan: #00e5ff;
@@ -14,18 +14,18 @@
   --voiceos-violet: #8b00ff;
   --voiceos-magenta: #ff00cc;
 
-  /* Core surfaces */
-  --surface-dark: #0a0a0a;          /* background: deep black */
-  --surface-notch: rgba(0, 0, 0, 0.71);   /* translucent black notch bar (71%) */
-  --surface-sheet: rgba(0, 0, 0, 0.82);   /* confirmation sheet (82%) */
-  --surface-elevated: rgba(20, 20, 20, 0.9);
+  /* Surfaces — deep black, solid translucent panels, no glass/blur decoration */
+  --surface-bg: #0a0a0a;
+  --surface-panel: rgba(15, 15, 15, 0.92);
+  --surface-elevated: rgba(22, 22, 22, 0.94);
+  --surface-inset: rgba(28, 28, 28, 0.96);
 
   /* Text */
   --text-primary: #ffffff;
   --text-secondary: #c7c7c7;
   --text-muted: #8a8a8a;
 
-  /* Gradients */
+  /* Gradients — confined to buttons and waveform only */
   --grad-primary: linear-gradient(135deg, var(--voiceos-cyan), var(--voiceos-blue), var(--voiceos-violet), var(--voiceos-magenta));
   --grad-surface: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
 
@@ -34,7 +34,7 @@
   --edge-radius: 16px;
   --edge-radius-sm: 8px;
 
-  /* Shadows: offset + soft blur (craft floor: no zero-offset colored halos) */
+  /* Shadows: offset + soft blur, never zero-offset colored halos */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
@@ -42,7 +42,7 @@
   /* Typography — Segoe UI per DESIGN.md */
   --font-ui: "Segoe UI", "Segoe UI Variable", system-ui, -apple-system, sans-serif;
 
-  /* Scale */
+  /* Scale — display max 6rem, body measure ≤62ch, tracking floor -0.04em */
   --display-size: 5rem;
   --h1: 3rem;
   --h2: 2rem;
@@ -73,6 +73,7 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -85,37 +86,26 @@ img {
   display: block;
 }
 
-/* ── Visual world: notch surfaces ── */
-.notch {
-  background: var(--surface-notch);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+/* ── Surfaces — solid translucent panels, no backdrop-filter decoration ── */
+.panel {
+  background: var(--surface-panel);
   border: 1px solid var(--border-subtle);
   border-radius: var(--edge-radius);
   box-shadow: var(--shadow-lg);
 }
 
-.sheet {
-  background: var(--surface-sheet);
+.panel-elevated {
+  background: var(--surface-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--edge-radius);
   box-shadow: var(--shadow-lg);
 }
 
-/* ── Gradient ring (used only inside waveform/reflection per DESIGN.md) ── */
-.gradient-ring {
-  position: relative;
-  overflow: hidden;
-  border-radius: inherit;
-}
-.gradient-ring::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  background: var(--grad-primary);
-  border-radius: inherit;
-  z-index: -1;
-  opacity: 0.9;
+.panel-inset {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--edge-radius-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── Buttons ── */
@@ -124,7 +114,7 @@ img {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.9rem 1.75rem;
+  padding: 1rem 2rem;
   border-radius: var(--edge-radius-sm);
   font-family: var(--font-ui);
   font-weight: 600;
@@ -132,6 +122,7 @@ img {
   cursor: pointer;
   transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, filter 0.2s ease-out;
   border: none;
+  text-decoration: none;
 }
 
 .btn-primary {
@@ -150,6 +141,11 @@ img {
   transform: translateY(0);
 }
 
+.btn-primary:focus-visible {
+  outline: 2px solid var(--voiceos-cyan);
+  outline-offset: 2px;
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-primary);
@@ -161,9 +157,13 @@ img {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.btn:focus-visible {
+.btn-ghost:focus-visible {
   outline: 2px solid var(--voiceos-cyan);
   outline-offset: 2px;
+}
+
+.btn-full {
+  width: 100%;
 }
 
 /* ── Layout ── */
@@ -174,7 +174,11 @@ img {
 }
 
 .section {
-  padding: 6rem 0;
+  padding: 7rem 0;
+}
+
+.section-tight {
+  padding: 4rem 0;
 }
 
 /* ── Header / nav ── */
@@ -183,7 +187,6 @@ img {
   top: 0;
   z-index: 50;
   background: rgba(10, 10, 10, 0.6);
-  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -214,7 +217,8 @@ img {
   transition: color 0.2s ease-out;
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links a[aria-current="page"] {
   color: var(--voiceos-cyan);
 }
 
@@ -230,38 +234,19 @@ img {
   align-items: center;
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--voiceos-cyan);
-  border: 1px solid rgba(0, 229, 255, 0.35);
-  background: rgba(0, 229, 255, 0.08);
+  color: #000;
+  background: var(--voiceos-cyan);
 }
 
-/* ── Gradient text utility (heading emphasis only, not decoration) ── */
-.gradient-text {
-  background: var(--grad-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Section heading ── */
+/* ── Section heading (no kicker/eyebrow — heading carries its own weight) ── */
 .section-head {
   max-width: 700px;
-  margin: 0 auto 4rem auto;
+  margin: 0 auto 5rem auto;
   text-align: center;
-}
-
-.section-head .kicker {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--voiceos-cyan);
-  margin-bottom: 1rem;
 }
 
 .section-head h2 {
@@ -274,11 +259,27 @@ img {
 .section-head p {
   color: var(--text-secondary);
   font-size: 1.125rem;
+  max-width: 62ch;
+  margin: 0 auto;
 }
 
-/* ── Section numbers (deprecated by craft floor; avoided) ── */
+/* ── Page header (used on Features, Download, Docs) ── */
+.page-title {
+  font-size: var(--h1);
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
 
-/* ── Animations ── */
+.page-lead {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  max-width: 62ch;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Animations — one authored motion moment (waveform) only ── */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -301,12 +302,18 @@ img {
 /* ── Mobile base ── */
 @media (max-width: 768px) {
   .section {
-    padding: 4rem 0;
+    padding: 4.5rem 0;
+  }
+  .section-tight {
+    padding: 3rem 0;
   }
   .section-head h2 {
     font-size: 1.75rem;
   }
   .nav-links {
     display: none;
+  }
+  .display-size-mobile {
+    font-size: 2.75rem;
   }
 }

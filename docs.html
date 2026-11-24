@@ -26,10 +26,12 @@
 
   <main>
     <!-- Page header -->
-    <section class="section sheet" style="text-align:center;">
+    <section class="section section-tight">
       <div class="container">
-        <h1 style="font-size:var(--h1); line-height:1.2; margin-bottom:1rem;">Docs</h1>
-        <p style="color:var(--text-secondary); max-width:62ch; margin:0 auto;">Get started with VoiceOS: install, voice commands, screen context, plugins, and troubleshooting.</p>
+        <div class="panel panel-inset">
+          <h1 class="page-title">Docs</h1>
+          <p class="page-lead">Get started with VoiceOS: install, voice commands, screen context, plugins, and troubleshooting.</p>
+        </div>
       </div>
     </section>
 
@@ -51,7 +53,7 @@
         <section id="quick-start">
           <h2>Quick start</h2>
           <p>Download <strong>VoiceOS.exe</strong>, run it, and grant microphone access when prompted. VoiceOS lives in your system tray and listens for your wake word or a hotkey.</p>
-          <div class="callout notch">
+          <div class="callout panel panel-elevated">
             <p><strong>First run:</strong> VoiceOS builds its app index on first launch. This takes a few seconds — app launching will be instant after that.</p>
           </div>
         </section>
@@ -102,9 +104,9 @@
     </div>
   </main>
 
-  <footer style="border-top:1px solid var(--border-subtle); padding:3rem 0; text-align:center;">
+  <footer class="panel-inset">
     <div class="container">
-      <p style="color:var(--text-muted); font-size:0.9rem;">
+      <p class="footer-copy">
         VoiceOS — voice-first desktop assistant for Windows.<br />
         &copy; 2026 VoiceOS. All rights reserved.
       </p>

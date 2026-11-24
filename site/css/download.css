@@ -50,7 +50,55 @@
   font-size: 1.125rem;
 }
 
+.download-arrow {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.download-spec {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.download-note {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.platform-strip {
+  text-align: center;
+}
+
+.platform-heading {
+  font-size: var(--h2);
+  line-height: 1.25;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.platform-copy {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  max-width: 60ch;
+  margin: 0 auto 1.5rem auto;
+  line-height: 1.6;
+}
+
+.platform-email {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.install-heading {
+  font-size: var(--h2);
+  line-height: 1.25;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
 .install-steps {
+  max-width: 62ch;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;

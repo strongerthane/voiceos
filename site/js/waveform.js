@@ -1,7 +1,7 @@
 /* ============================================================
    VoiceOS — Siri-style waveform visual (one authored motion moment)
    Vertical bars with varying heights, smooth sine animation,
-   voice gradient (cyan → blue → violet → magenta) on glass capsule.
+   black gradient (black → dark gray → black) on frosted glass capsule.
    ============================================================ */
 
 (function () {
@@ -10,9 +10,6 @@
 
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
-
-  // Voice gradient palette
-  const colors = ["#00e5ff", "#0066ff", "#8b00ff", "#ff00cc"];
 
   let width = 0;
   let height = 0;
@@ -77,18 +74,20 @@
     const centerY = height / 2;
     const maxBarHeight = height * 0.75;
 
+    // Black gradient across the capsule width
+    const barGradient = ctx.createLinearGradient(0, 0, width, 0);
+    barGradient.addColorStop(0, "#000000");
+    barGradient.addColorStop(0.5, "#1a1a1a");
+    barGradient.addColorStop(1, "#000000");
+
     bars.forEach((bar) => {
       const phase = Math.sin(t + bar.phase) * 0.5 + 0.5;
       const barHeight = bar.baseHeight * (0.4 + phase * 0.6 * bar.amp);
       const barTop = centerY - barHeight / 2;
 
-      // Color by position across the gradient
-      const colorIndex = Math.floor((bar.x / width) * colors.length);
-      const color = colors[Math.min(colorIndex, colors.length - 1)];
-
-      // Glass bar with glow
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
+      // Glass bar with glow — black gradient on frosted glass
+      ctx.fillStyle = barGradient;
+      ctx.shadowColor = "#000000";
       ctx.shadowBlur = barHeight > height * 0.5 ? 16 : 8;
       ctx.fillRect(bar.x, barTop, bar.w, barHeight);
       ctx.shadowBlur = 0;

@@ -24,8 +24,8 @@
   --text-secondary: #6e6e73;
   --text-muted: #8e8e93;
 
-  /* Gradients — confined to buttons and waveform only */
-  --grad-primary: linear-gradient(135deg, var(--voiceos-cyan), var(--voiceos-blue), var(--voiceos-violet), var(--voiceos-magenta));
+  /* Gradients — black on white theme, confined to buttons and waveform only */
+  --grad-primary: linear-gradient(135deg, #000000, #1a1a1a, #333333, #000000);
   --grad-surface: linear-gradient(180deg, #ffffff 0%, #f9f9fb 100%);
 
   /* Borders & edges */
@@ -109,17 +109,19 @@ img {
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--edge-radius);
+  box-shadow: var(--shadow-md);
 }
 
 .glass-liquid {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px) saturate(1.3);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: var(--edge-radius);
   box-shadow: var(--shadow-lg);
   position: relative;
